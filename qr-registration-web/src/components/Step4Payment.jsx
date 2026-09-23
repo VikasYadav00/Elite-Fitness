@@ -3,6 +3,7 @@ import { CreditCard, Wallet, ShieldCheck, Lock, ArrowRight, ArrowLeft, Loader2, 
 import { QRCodeSVG } from 'qrcode.react';
 import jsQR from 'jsqr';
 import api from '../api';
+import { publishCloudEvent } from '../cloudSync';
 
 export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev }) {
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CASH'
@@ -235,6 +236,9 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
         utr_number: paymentMethod === 'UPI' ? utrNumber.trim() : 'CASH_DUE',
         proof_note: proofNote.trim()
       };
+
+      // Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
+      publishCloudEvent('NEW_REGISTRATION', payload).catch(() => {});
 
       await api.post('/registrations/complete', payload).catch(() => {});
     } catch (err) {

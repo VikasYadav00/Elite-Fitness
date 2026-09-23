@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api';
+import { publishCloudEvent } from '../cloudSync';
 
 const QUICK_MEMBERS = [
   { reg_id: 'EF26091001', name: 'Rahul Sharma', phone: '9876543210', plan: 'Quarterly Beast Mode' },
@@ -67,12 +68,32 @@ export default function CheckinPortal() {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const today = new Date().toISOString().split('T')[0];
 
-    // Attempt backend attendance call with active membership verification
+    const entryId = `ts-${Date.now()}`;
+    const checkinItem = {
+      id: entryId,
+      reg_id: regId,
+      name: memberName,
+      time: timeStr,
+      date: today,
+      method: 'QR (Table Scan)',
+      device_id: `MOB-${Math.random().toString(36).substring(2, 6).toUpperCase()}**`,
+      status: 'PRESENT',
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
     try {
-      const res = await api.post('/attendance/check-in', {
+      await publishCloudEvent('ATTENDANCE_CHECKIN', checkinItem);
+    } catch (_) {}
+
+    // 2. Attempt backend attendance call via public endpoint (no auth required)
+    try {
+      const res = await api.post('/attendance/public-checkin', {
         registration_id: regId,
+        phone: targetId,
+        name: memberName,
         method: 'QR_TABLE_SCAN',
-        device_fingerprint: `DEV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+        device_fingerprint: checkinItem.device_id
       });
       if (res.data && res.data.success === false) {
         setLoading(false);
@@ -85,9 +106,10 @@ export default function CheckinPortal() {
         setError('🚫 ACCESS DENIED: No active membership found. Please complete payment at the front desk.');
         return;
       }
+      // Network error — check-in already published via cloud sync
     }
 
-    // Broadcast check-in to Owner App via localStorage storage event
+    // 3. Local fallback persistence
     try {
       const checkinEvent = {
         name: memberName,
@@ -98,18 +120,8 @@ export default function CheckinPortal() {
       };
       localStorage.setItem('ef_member_checkin', JSON.stringify(checkinEvent));
 
-      // Append to attendance logs
       const logs = JSON.parse(localStorage.getItem('ef_attendance_logs') || '[]');
-      const newEntry = {
-        id: String(Date.now()),
-        reg_id: regId,
-        name: memberName,
-        time: timeStr,
-        method: 'QR (Table Scan)',
-        device_id: `MOB-${Math.random().toString(36).substring(2, 6).toUpperCase()}**`,
-        status: 'PRESENT'
-      };
-      const updated = [newEntry, ...logs.filter(l => l.reg_id !== regId)];
+      const updated = [checkinItem, ...logs.filter(l => l.reg_id !== regId)];
       localStorage.setItem('ef_attendance_logs', JSON.stringify(updated));
     } catch (_) {}
 

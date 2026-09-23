@@ -10,6 +10,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import api from '../api';
+import { fetchCloudEvents, subscribeCloudStream } from '../utils/cloudSync';
 
 const SEED_FEEDBACKS = [
   {
@@ -117,17 +118,52 @@ export default function FeedbackReviewsView() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Fetch from backend
+  // Fetch from cloud sync (ntfy.sh) AND local backend - polls every 10 seconds for real-time live updates
   const fetchFeedbacks = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/feedback');
-      if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
-        setFeedbacks(res.data.data);
-        localStorage.setItem('ef_feedbacks_data', JSON.stringify(res.data.data));
-      }
+      // 1. Fetch from cloud sync topic (instant worldwide reviews from GitHub Pages)
+      const cloudEvents = await fetchCloudEvents('24h');
+      const cloudFeedbacks = cloudEvents
+        .filter(e => e.event === 'FEEDBACK_SUBMITTED' && e.data)
+        .map(e => e.data);
+
+      // 2. Fetch from local backend
+      let backendFeedbacks = [];
+      try {
+        const res = await api.get('/feedback');
+        if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
+          backendFeedbacks = res.data.data;
+        }
+      } catch (_) {}
+
+      // 3. Merge: seed + local state + backend + cloud feedbacks (deduplicated by ID)
+      setFeedbacks(prev => {
+        const map = new Map();
+        // Seed first
+        SEED_FEEDBACKS.forEach(f => map.set(f.id, f));
+        // Then previous state / local storage
+        prev.forEach(f => map.set(f.id, f));
+        // Then local backend
+        backendFeedbacks.forEach(f => map.set(f.id, f));
+        // Then cloud feedbacks (highest priority for new QR submissions)
+        cloudFeedbacks.forEach(f => {
+          const existing = map.get(f.id);
+          map.set(f.id, {
+            ...f,
+            status: existing?.status || f.status || 'NEW',
+            owner_notes: existing?.owner_notes || f.owner_notes || ''
+          });
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        );
+        localStorage.setItem('ef_feedbacks_data', JSON.stringify(merged));
+        return merged;
+      });
     } catch (_) {
-      // Backend offline fallback: use local state
+      // Offline fallback: keep existing state
     } finally {
       setLoading(false);
     }
@@ -135,6 +171,28 @@ export default function FeedbackReviewsView() {
 
   useEffect(() => {
     fetchFeedbacks();
+
+    // 1. Real-time SSE stream for instant 0ms notification when a review is submitted
+    const unsubscribe = subscribeCloudStream((msg) => {
+      if (msg.event === 'FEEDBACK_SUBMITTED' && msg.data) {
+        const newFb = msg.data;
+        setFeedbacks(prev => {
+          if (prev.some(f => f.id === newFb.id)) return prev;
+          const updated = [newFb, ...prev];
+          localStorage.setItem('ef_feedbacks_data', JSON.stringify(updated));
+          return updated;
+        });
+        showToast(`⭐ New ${newFb.rating}★ Review from ${newFb.name || 'a Member'}!`);
+      }
+    });
+
+    // 2. Polling every 10 seconds to catch all reviews reliably
+    const pollInterval = setInterval(fetchFeedbacks, 10000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, []);
 
   // Update status / owner reply

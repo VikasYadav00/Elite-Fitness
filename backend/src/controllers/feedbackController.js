@@ -163,16 +163,26 @@ async function submitFeedback(req, res) {
 
 // GET /api/feedback - Retrieve all feedbacks (Owner & Public review count)
 async function getFeedbacks(req, res) {
+  let dbRows = [];
   try {
     const { rows } = await query(`SELECT * FROM feedbacks ORDER BY created_at DESC`);
     if (rows && rows.length > 0) {
-      return successResponse(res, 'Feedbacks retrieved', rows);
+      dbRows = rows;
     }
   } catch (err) {
     // DB offline fallback
   }
 
-  return successResponse(res, 'Feedbacks retrieved', inMemoryFeedbacks);
+  // Merge: dbRows + inMemoryFeedbacks (deduplicated by id)
+  const map = new Map();
+  inMemoryFeedbacks.forEach(f => map.set(f.id, f));
+  dbRows.forEach(f => map.set(f.id, f));
+
+  const all = Array.from(map.values()).sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+
+  return successResponse(res, 'Feedbacks retrieved', all);
 }
 
 // PATCH /api/feedback/:id/status - Update feedback status / owner note
@@ -216,9 +226,44 @@ async function deleteFeedback(req, res) {
   return successResponse(res, 'Feedback deleted', { id });
 }
 
+// Ingest cloud sync feedback into memory & database
+async function ingestCloudFeedback(data) {
+  if (!data || !data.id) return;
+  if (inMemoryFeedbacks.some(f => f.id === data.id)) return;
+
+  const item = {
+    id: data.id,
+    name: (data.name && data.name.trim()) || 'Gym Member',
+    phone: data.phone || '',
+    member_status: data.member_status || 'ACTIVE_MEMBER',
+    rating: Number(data.rating) || 5,
+    cleanliness_rating: Number(data.cleanliness_rating) || 5,
+    equipment_rating: Number(data.equipment_rating) || 5,
+    trainer_rating: Number(data.trainer_rating) || 5,
+    category: data.category || 'GENERAL',
+    comments: data.comments || '',
+    source: data.source || 'GOOGLE_LENS_QR',
+    status: data.status || 'NEW',
+    owner_notes: data.owner_notes || '',
+    created_at: data.created_at || new Date().toISOString()
+  };
+
+  inMemoryFeedbacks = [item, ...inMemoryFeedbacks];
+
+  try {
+    await query(
+      `INSERT INTO feedbacks (id, name, phone, member_status, rating, cleanliness_rating, equipment_rating, trainer_rating, category, comments, source, status, owner_notes, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [item.id, item.name, item.phone, item.member_status, item.rating, item.cleanliness_rating, item.equipment_rating, item.trainer_rating, item.category, item.comments, item.source, item.status, item.owner_notes]
+    );
+  } catch (_) {}
+}
+
 module.exports = {
   submitFeedback,
   getFeedbacks,
   updateFeedbackStatus,
-  deleteFeedback
+  deleteFeedback,
+  ingestCloudFeedback
 };

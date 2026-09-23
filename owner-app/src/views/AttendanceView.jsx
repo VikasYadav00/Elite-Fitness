@@ -9,6 +9,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import api from '../api';
+import { fetchCloudEvents, subscribeCloudStream } from '../utils/cloudSync';
 
 const MOCK_ATTENDANCE = [
   { id: '1', reg_id: 'EF26091001', name: 'Rahul Sharma', time: '06:15 AM', method: 'QR (Table Scan)', device_id: 'DEV-98a7**4b', status: 'PRESENT' },
@@ -69,7 +70,9 @@ export default function AttendanceView() {
   };
 
   // The actual clickable URL encoded into the table QR
-  const qrValue = `${attendanceUrl}?token=${qrSession?.session_token || 'EF-ATT-TABLE'}`;
+  // Includes ?api= so that when a member's phone scans, it can POST directly to the owner's local backend
+  const backendApiUrl = localStorage.getItem('elite_fitness_api_url') || 'http://192.168.1.49:5000/api';
+  const qrValue = `${attendanceUrl}&api=${encodeURIComponent(backendApiUrl)}&token=${qrSession?.session_token || 'EF-ATT-TABLE'}`;
 
   // Handle Automatic Scan checkin
   const handleAutoScanMark = (name, regId) => {
@@ -113,30 +116,98 @@ export default function AttendanceView() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Poll backend for today's attendance if backend reachable
+  // Poll cloud sync (ntfy.sh) AND local backend for today's attendance check-ins
   useEffect(() => {
     async function fetchToday() {
       try {
-        const res = await api.get('/attendance/today');
-        if (res.data?.success && res.data.data?.records && res.data.data.records.length > 0) {
-          const formatted = res.data.data.records.map(r => ({
-            id: String(r.id),
-            reg_id: r.registration_id || 'EF26091001',
-            name: r.full_name || 'Member',
-            time: new Date(r.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            method: r.method || 'QR',
-            device_id: r.device_fingerprint || 'DEV-PHONE',
-            status: r.status || 'PRESENT'
-          }));
-          setAttendance(prev => {
-            const map = new Map();
-            [...formatted, ...prev].forEach(item => map.set(item.reg_id || item.id, item));
-            return Array.from(map.values());
-          });
-        }
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // 1. Fetch from cloud sync (instant check-ins from members' phones worldwide)
+        let cloudRecords = [];
+        try {
+          const cloudEvents = await fetchCloudEvents('24h');
+          cloudRecords = cloudEvents
+            .filter(e => e.event === 'ATTENDANCE_CHECKIN' && e.data)
+            .map(e => e.data)
+            .filter(a => !a.date || a.date === todayStr);
+        } catch (_) {}
+
+        // 2. Try the local public endpoint (no auth needed)
+        let backendPublicRecords = [];
+        try {
+          const pub = await api.get('/attendance/public-today');
+          if (pub.data?.success && pub.data.data?.records?.length > 0) {
+            backendPublicRecords = pub.data.data.records.map(r => ({
+              id: String(r.id || r.reg_id + Date.now()),
+              reg_id: r.reg_id,
+              name: r.name || 'Member',
+              time: r.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              method: r.method || 'QR (Table Scan)',
+              device_id: r.device_id || 'MOB-QR',
+              status: r.status || 'PRESENT'
+            }));
+          }
+        } catch (_) {}
+
+        // 3. Also try authenticated endpoint to merge with DB records
+        let backendAuthRecords = [];
+        try {
+          const auth = await api.get('/attendance/today');
+          if (auth.data?.success && auth.data.data?.records?.length > 0) {
+            backendAuthRecords = auth.data.data.records.map(r => ({
+              id: String(r.id),
+              reg_id: r.registration_id || 'EF26091001',
+              name: r.full_name || 'Member',
+              time: new Date(r.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              method: r.method || 'QR',
+              device_id: r.device_fingerprint || 'DEV-PHONE',
+              status: r.status || 'PRESENT'
+            }));
+          }
+        } catch (_) {}
+
+        // 4. Merge all sources: previous + backend + cloud (deduplicate by reg_id)
+        setAttendance(prev => {
+          const map = new Map();
+          // Keep existing list first
+          prev.forEach(item => map.set(item.reg_id || item.id, item));
+          // Merge local backend records
+          [...backendAuthRecords, ...backendPublicRecords].forEach(item => map.set(item.reg_id || item.id, item));
+          // Merge cloud records (highest priority for new live scans)
+          cloudRecords.forEach(item => map.set(item.reg_id || item.id, item));
+
+          const merged = Array.from(map.values());
+          try { localStorage.setItem('ef_attendance_logs', JSON.stringify(merged)); } catch(e){}
+          return merged;
+        });
       } catch (_) {}
     }
+
     fetchToday();
+
+    // Real-time SSE stream for instant check-in notifications (0ms delay)
+    const unsubscribe = subscribeCloudStream((msg) => {
+      if (msg.event === 'ATTENDANCE_CHECKIN' && msg.data) {
+        const item = msg.data;
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (item.date && item.date !== todayStr) return;
+
+        setAttendance(prev => {
+          const updated = [item, ...prev.filter(p => p.reg_id !== item.reg_id)];
+          try { localStorage.setItem('ef_attendance_logs', JSON.stringify(updated)); } catch(e){}
+          return updated;
+        });
+        showToast(`⚡ ${item.name || 'Member'} (${item.reg_id}) checked in via Table QR!`);
+      }
+    });
+
+    // Auto-refresh every 10 seconds so new check-ins appear live reliably
+    const pollInterval = setInterval(fetchToday, 10000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const handleGenerateQR = async () => {

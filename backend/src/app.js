@@ -52,12 +52,16 @@ const allowedOrigins = [
   'capacitor://localhost',
   'http://localhost',
   'https://localhost',
+  // GitHub Pages - public QR portal for worldwide member scanning
+  'https://vikasyadav00.github.io',
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
+    // Always allow GitHub Pages public QR portal
+    if (origin.includes('github.io')) return callback(null, true);
     // Allow capacitor, localhost, or any local LAN IP (192.168.x.x, 10.x.x.x, 172.x.x.x)
     if (
       allowedOrigins.includes(origin) ||

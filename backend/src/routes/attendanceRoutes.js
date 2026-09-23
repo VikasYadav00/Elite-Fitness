@@ -4,9 +4,14 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 const {
   checkIn, checkOut, qrCheckIn, getAttendance, getTodayAttendance, manualAttendance,
-  generateAttendanceQR, qrSessionCheckIn,
+  generateAttendanceQR, qrSessionCheckIn, publicTableCheckIn, getPublicTodayAttendance,
 } = require('../controllers/attendanceController');
 
+// ─── Public routes (no auth) — for table QR scanning from any member's phone ─
+router.post('/public-checkin', publicTableCheckIn);
+router.get('/public-today', getPublicTodayAttendance);
+
+// ─── Authenticated routes ─────────────────────────────────────────────────────
 router.post('/check-in', authenticate, checkIn);
 router.post('/check-out', authenticate, checkOut);
 router.post('/qr-check-in', authenticate, qrCheckIn);

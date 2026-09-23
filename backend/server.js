@@ -8,6 +8,7 @@ const { runMigrations } = require('./src/config/migrate');
 const logger = require('./src/utils/logger');
 
 const { initCronJobs } = require('./src/services/cronService');
+const { initCloudSyncService } = require('./src/services/cloudSyncService');
 
 const PORT = process.env.PORT || 5000;
 
@@ -23,8 +24,9 @@ async function startServer() {
       logger.warn('⚠️ Database connection note: Could not connect to PostgreSQL. Running in preview mode.', dbErr.message);
     }
 
-    // Initialize cron jobs
+    // Initialize cron jobs & cloud sync service
     initCronJobs();
+    initCloudSyncService();
 
     // Start server
     app.listen(PORT, () => {

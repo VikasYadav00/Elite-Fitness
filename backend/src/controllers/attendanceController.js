@@ -273,7 +273,112 @@ async function qrSessionCheckIn(req, res) {
   return successResponse(res, 'Check-in successful! Welcome to Elite Fitness! 💪', rows[0], 201);
 }
 
+// ─── In-memory attendance store for table QR scans ─────────────────────────
+let inMemoryTableScans = [];
+
+// POST /api/attendance/public-checkin (NO AUTH — for table QR scanned by any member's phone)
+async function publicTableCheckIn(req, res) {
+  const { registration_id, phone, name, method = 'QR_TABLE_SCAN', device_fingerprint } = req.body;
+
+  if (!registration_id && !phone) {
+    return errorResponse(res, 'registration_id or phone is required.', null, 400);
+  }
+
+  const identifier = (registration_id || phone || '').trim().toUpperCase();
+  const today = new Date().toISOString().split('T')[0];
+
+  // Block duplicates in memory for same identifier same day
+  const alreadyIn = inMemoryTableScans.find(
+    s => s.reg_id === identifier && s.date === today
+  );
+  if (alreadyIn) {
+    return successResponse(res, `Already checked in today at ${alreadyIn.time}. Great job! 💪`, alreadyIn);
+  }
+
+  const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const entryId = `ts-${Date.now()}`;
+
+  const newScan = {
+    id: entryId,
+    reg_id: identifier,
+    name: name || `Member (${identifier})`,
+    time: timeStr,
+    date: today,
+    method: method || 'QR_TABLE_SCAN',
+    device_id: device_fingerprint ? `${device_fingerprint.substring(0, 8)}**` : 'MOB-QR',
+    status: 'PRESENT',
+    created_at: new Date().toISOString()
+  };
+
+  // Prepend to in-memory store
+  inMemoryTableScans = [newScan, ...inMemoryTableScans.filter(s => !(s.reg_id === identifier && s.date === today))];
+  // Keep max 500 entries in memory
+  if (inMemoryTableScans.length > 500) inMemoryTableScans = inMemoryTableScans.slice(0, 500);
+
+  // Optional DB write (if member exists, record proper attendance)
+  try {
+    await query(
+      `INSERT INTO attendance (member_id, date, check_in_time, method, status, notes)
+       SELECT m.id, $1, NOW(), $2, 'PRESENT', $3
+       FROM members m
+       WHERE (m.registration_id = $4 OR m.phone = $5) AND m.status = 'ACTIVE'
+       ON CONFLICT DO NOTHING`,
+      [today, method, `Table QR scan — ${device_fingerprint || 'unknown'}`, identifier, identifier]
+    );
+  } catch (_) {
+    // DB optional — in-memory fallback always works
+  }
+
+  logger.info(`Public table QR check-in: ${identifier} at ${timeStr}`);
+  return successResponse(res, `Welcome, ${newScan.name}! Checked in at ${timeStr} 💪`, newScan, 201);
+}
+
+// GET /api/attendance/public-today (NO AUTH — for Owner App polling when backend API is local)
+async function getPublicTodayAttendance(req, res) {
+  const today = new Date().toISOString().split('T')[0];
+  const todayScans = inMemoryTableScans.filter(s => s.date === today);
+  return successResponse(res, "Today's table scan attendance", { date: today, records: todayScans });
+}
+
+// Ingest cloud sync attendance into memory & database
+async function ingestCloudAttendance(data) {
+  if (!data) return;
+  const regId = (data.reg_id || '').trim();
+  const date = data.date || new Date().toISOString().split('T')[0];
+  if (!regId) return;
+
+  // Skip if already in memory for this reg_id and date
+  if (inMemoryTableScans.some(s => s.reg_id === regId && s.date === date)) return;
+
+  const item = {
+    id: data.id || `ts-${Date.now()}`,
+    reg_id: regId,
+    name: data.name || 'Member',
+    time: data.time || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    date: date,
+    method: data.method || 'QR_TABLE_SCAN',
+    device_id: data.device_id || 'MOB-QR',
+    status: 'PRESENT',
+    created_at: data.created_at || new Date().toISOString()
+  };
+
+  inMemoryTableScans = [item, ...inMemoryTableScans];
+  if (inMemoryTableScans.length > 500) inMemoryTableScans = inMemoryTableScans.slice(0, 500);
+
+  try {
+    await query(
+      `INSERT INTO attendance (member_id, date, check_in_time, method, status, notes)
+       SELECT m.id, $1, NOW(), $2, 'PRESENT', $3
+       FROM members m
+       WHERE (m.registration_id = $4 OR m.phone = $5) AND m.status = 'ACTIVE'
+       ON CONFLICT DO NOTHING`,
+      [date, item.method, 'Cloud Table QR scan', regId, regId]
+    );
+  } catch (_) {}
+}
+
 module.exports = {
   checkIn, checkOut, qrCheckIn, getAttendance, getTodayAttendance,
   manualAttendance, generateAttendanceQR, qrSessionCheckIn,
+  publicTableCheckIn, getPublicTodayAttendance, ingestCloudAttendance
 };

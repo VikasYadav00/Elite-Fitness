@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api';
+import { publishCloudEvent } from '../cloudSync';
 
 const CATEGORIES = [
   { id: 'EQUIPMENT', label: '🏋️ Equipment & Machines' },
@@ -58,19 +59,27 @@ export default function FeedbackPortal() {
       source: 'GOOGLE_LENS_QR'
     };
 
+    const feedbackId = `fb-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const feedbackItem = {
+      ...payload,
+      id: feedbackId,
+      status: 'NEW',
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
+    try {
+      await publishCloudEvent('FEEDBACK_SUBMITTED', feedbackItem);
+    } catch (_) {}
+
+    // 2. Also attempt local backend API
     try {
       await api.post('/feedback', payload);
     } catch (err) {
-      // If backend fails, save to localStorage fallback so owner app can still read it
+      // Local fallback
       try {
         const stored = JSON.parse(localStorage.getItem('ef_feedbacks_data') || '[]');
-        const newEntry = {
-          ...payload,
-          id: `fb-local-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          status: 'NEW'
-        };
-        localStorage.setItem('ef_feedbacks_data', JSON.stringify([newEntry, ...stored]));
+        localStorage.setItem('ef_feedbacks_data', JSON.stringify([feedbackItem, ...stored]));
       } catch (_) {}
     }
 
