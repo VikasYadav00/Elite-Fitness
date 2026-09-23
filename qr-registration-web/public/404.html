@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Elite Fitness Portal Redirect</title>
+  <script>
+    // GitHub Pages SPA router redirection
+    // Converts direct path requests into query parameters so the SPA handles them smoothly
+    var path = window.location.pathname;
+    var search = window.location.search;
+    var hash = window.location.hash;
+    
+    // Extract route part after the repository name if present
+    var repoName = '/Elite-Fitness';
+    var subPath = path;
+    if (path.indexOf(repoName) === 0) {
+      subPath = path.substring(repoName.length);
+    }
+    
+    // Normalize path
+    if (subPath.indexOf('/checkin') !== -1) {
+      window.location.replace(repoName + '/?checkin=1' + (hash ? hash : ''));
+    } else if (subPath.indexOf('/feedback') !== -1) {
+      window.location.replace(repoName + '/?feedback=1' + (hash ? hash : ''));
+    } else {
+      window.location.replace(repoName + '/' + (search ? search : '') + (hash ? hash : ''));
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting to Elite Fitness Portal...</p>
+</body>
+</html>

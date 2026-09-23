@@ -1,0 +1,39 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node -e \"require('./src/config/seed').seedDatabase()\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.0",
+    "exceljs": "^4.4.0",
+    "express": "^4.22.3",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^8.7.0",
+    "firebase-admin": "^14.4.0",
+    "helmet": "^8.3.0",
+    "joi": "^18.2.9",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "multer": "^2.4.0",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.0.10",
+    "pdfkit": "^0.20.2",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.8",
+    "uuid": "^14.0.2",
+    "winston": "^3.19.0"
+  }
+}

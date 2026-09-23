@@ -1,0 +1,9 @@
+{
+  "appId": "com.elitefitness.customer",
+  "appName": "Elite Fitness Member",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http"
+  }
+}
