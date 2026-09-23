@@ -11,15 +11,15 @@ import { Capacitor } from '@capacitor/core';
 import api from '../api';
 
 // ─── Utility: detect best registration URL ────────────────────────────────────
+export const PUBLIC_REGISTRATION_URL = 'https://vikasyadav00.github.io/Elite-Fitness/';
+
 function getRegistrationUrl() {
   const saved = localStorage.getItem('ef_registration_url');
-  if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1')) return saved;
-  const hostname = window.location.hostname;
-  // If running on localhost or inside mobile APK, use actual LAN IP so customers can open it
-  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://192.168.1.49:3000';
+  // Auto-upgrade from old LAN/localhost IP to the global GitHub Pages web server URL
+  if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
+    return saved;
   }
-  return `http://${hostname}:3000`;
+  return PUBLIC_REGISTRATION_URL;
 }
 
 // ─── Print-only QR popup (opens in new window, only shows the standee) ────────
@@ -594,7 +594,7 @@ export default function SettingsView() {
                 type="text"
                 className="input-field"
                 style={{ fontSize: '0.8rem', padding: '8px 12px', marginBottom: '6px' }}
-                placeholder="e.g. http://192.168.1.49:3000"
+                placeholder="e.g. https://vikasyadav00.github.io/Elite-Fitness/"
                 value={customRegUrl}
                 onChange={e => setCustomRegUrl(e.target.value)}
               />

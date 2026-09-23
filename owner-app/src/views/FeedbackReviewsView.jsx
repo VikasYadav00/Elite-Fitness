@@ -96,15 +96,16 @@ export default function FeedbackReviewsView() {
   const [activeReplyId, setActiveReplyId] = useState(null);
   const [replyText, setReplyText] = useState('');
 
-  // Standee QR URL detection (accessible by phone cameras & Google Lens on Wi-Fi)
+  const PUBLIC_FEEDBACK_URL = 'https://vikasyadav00.github.io/Elite-Fitness/?feedback=1';
+
+  // Standee QR URL detection (accessible by phone cameras & Google Lens worldwide)
   const [feedbackUrl, setFeedbackUrl] = useState(() => {
     const saved = localStorage.getItem('ef_feedback_qr_url');
-    if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1')) return saved;
-    const hostname = window.location.hostname;
-    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://192.168.1.49:3000/feedback';
+    // Auto-upgrade from old LAN/localhost IP to the global GitHub Pages web server URL
+    if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
+      return saved;
     }
-    return `http://${hostname}:3000/feedback`;
+    return PUBLIC_FEEDBACK_URL;
   });
   const [customFeedbackUrl, setCustomFeedbackUrl] = useState(feedbackUrl);
   const [showUrlEdit, setShowUrlEdit] = useState(false);
@@ -642,7 +643,7 @@ export default function FeedbackReviewsView() {
                 type="text"
                 className="input-field"
                 style={{ fontSize: '0.8rem', padding: '8px 12px', marginBottom: '6px' }}
-                placeholder="e.g. http://192.168.1.49:3000/feedback"
+                placeholder="e.g. https://vikasyadav00.github.io/Elite-Fitness/?feedback=1"
                 value={customFeedbackUrl}
                 onChange={e => setCustomFeedbackUrl(e.target.value)}
               />

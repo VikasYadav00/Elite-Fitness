@@ -21,9 +21,9 @@ export default function LeadsView() {
   const [newLead, setNewLead] = useState({ name: '', phone: '', goal: 'Weight Loss' });
   const [copied, setCopied] = useState(false);
 
-  const feedbackUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? (localStorage.getItem('ef_feedback_qr_url') || 'http://192.168.1.49:3000/feedback')
-    : (localStorage.getItem('ef_feedback_qr_url') || `http://${window.location.hostname}:3000/feedback`);
+  const feedbackUrl = (typeof window !== 'undefined' && localStorage.getItem('ef_feedback_qr_url') && !localStorage.getItem('ef_feedback_qr_url').includes('192.168.'))
+    ? localStorage.getItem('ef_feedback_qr_url')
+    : 'https://vikasyadav00.github.io/Elite-Fitness/?feedback=1';
 
   const handleCopyFeedbackLink = () => {
     navigator.clipboard.writeText(feedbackUrl);

@@ -47,15 +47,16 @@ export default function AttendanceView() {
   const [downloadingQR, setDownloadingQR] = useState(false);
   const [sharingQR, setSharingQR] = useState(false);
 
-  // Network Checkin URL (accessible by phones scanning at reception table)
+  const PUBLIC_ATTENDANCE_URL = 'https://vikasyadav00.github.io/Elite-Fitness/?checkin=1';
+
+  // Network Checkin URL (accessible by phones scanning at reception table worldwide)
   const [attendanceUrl, setAttendanceUrl] = useState(() => {
     const saved = localStorage.getItem('ef_attendance_url');
-    if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1')) return saved;
-    const hostname = window.location.hostname;
-    if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://192.168.1.49:3000/checkin';
+    // Auto-upgrade from old LAN/localhost IP to the global GitHub Pages web server URL
+    if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
+      return saved;
     }
-    return `http://${hostname}:3000/checkin`;
+    return PUBLIC_ATTENDANCE_URL;
   });
   const [customUrlInput, setCustomUrlInput] = useState(attendanceUrl);
   const [showUrlEdit, setShowUrlEdit] = useState(false);
@@ -710,7 +711,7 @@ export default function AttendanceView() {
                     style={{ fontSize: '0.78rem', padding: '6px 10px', flex: 1 }}
                     value={customUrlInput}
                     onChange={e => setCustomUrlInput(e.target.value)}
-                    placeholder="http://192.168.1.49:3000/checkin"
+                    placeholder="https://vikasyadav00.github.io/Elite-Fitness/?checkin=1"
                   />
                   <button
                     className="btn-primary"
