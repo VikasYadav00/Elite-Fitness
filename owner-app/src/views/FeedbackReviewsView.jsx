@@ -10,6 +10,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import api from '../api';
+import { getPublicFeedbackUrl } from '../urlConfig';
 import { fetchCloudEvents, subscribeCloudStream } from '../utils/cloudSync';
 
 const SEED_FEEDBACKS = [
@@ -89,6 +90,7 @@ export default function FeedbackReviewsView() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [starFilter, setStarFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [toastMessage, setToastMessage] = useState(null);
@@ -97,12 +99,12 @@ export default function FeedbackReviewsView() {
   const [activeReplyId, setActiveReplyId] = useState(null);
   const [replyText, setReplyText] = useState('');
 
-  const PUBLIC_FEEDBACK_URL = 'https://vikasyadav00.github.io/Elite-Fitness/?feedback=1';
+  const PUBLIC_FEEDBACK_URL = getPublicFeedbackUrl();
 
   // Standee QR URL detection (accessible by phone cameras & Google Lens worldwide)
   const [feedbackUrl, setFeedbackUrl] = useState(() => {
     const saved = localStorage.getItem('ef_feedback_qr_url');
-    // Auto-upgrade from old LAN/localhost IP to the global GitHub Pages web server URL
+    // Auto-upgrade from old LAN/localhost IP to the global production URL
     if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
       return saved;
     }
@@ -118,17 +120,20 @@ export default function FeedbackReviewsView() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Fetch from cloud sync (ntfy.sh) AND local backend - polls every 10 seconds for real-time live updates
-  const fetchFeedbacks = async () => {
-    setLoading(true);
+  // Fetch from cloud sync (ntfy.sh) AND backend
+  const fetchFeedbacks = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       // 1. Fetch from cloud sync topic (instant worldwide reviews from GitHub Pages)
-      const cloudEvents = await fetchCloudEvents('24h');
-      const cloudFeedbacks = cloudEvents
-        .filter(e => e.event === 'FEEDBACK_SUBMITTED' && e.data)
-        .map(e => e.data);
+      let cloudFeedbacks = [];
+      try {
+        const cloudEvents = await fetchCloudEvents('24h');
+        cloudFeedbacks = cloudEvents
+          .filter(e => e.event === 'FEEDBACK_SUBMITTED' && e.data)
+          .map(e => e.data);
+      } catch (_) {}
 
-      // 2. Fetch from local backend
+      // 2. Fetch from backend
       let backendFeedbacks = [];
       try {
         const res = await api.get('/feedback');
@@ -140,13 +145,9 @@ export default function FeedbackReviewsView() {
       // 3. Merge: seed + local state + backend + cloud feedbacks (deduplicated by ID)
       setFeedbacks(prev => {
         const map = new Map();
-        // Seed first
         SEED_FEEDBACKS.forEach(f => map.set(f.id, f));
-        // Then previous state / local storage
         prev.forEach(f => map.set(f.id, f));
-        // Then local backend
         backendFeedbacks.forEach(f => map.set(f.id, f));
-        // Then cloud feedbacks (highest priority for new QR submissions)
         cloudFeedbacks.forEach(f => {
           const existing = map.get(f.id);
           map.set(f.id, {
@@ -162,17 +163,18 @@ export default function FeedbackReviewsView() {
         localStorage.setItem('ef_feedbacks_data', JSON.stringify(merged));
         return merged;
       });
+      setLastUpdated(new Date());
     } catch (_) {
-      // Offline fallback: keep existing state
+      // Backend offline fallback: use local state
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchFeedbacks();
 
-    // 1. Real-time SSE stream for instant 0ms notification when a review is submitted
+    // 1. Real-time SSE stream for instant 0ms notification when a review is submitted worldwide
     const unsubscribe = subscribeCloudStream((msg) => {
       if (msg.event === 'FEEDBACK_SUBMITTED' && msg.data) {
         const newFb = msg.data;
@@ -187,7 +189,7 @@ export default function FeedbackReviewsView() {
     });
 
     // 2. Polling every 10 seconds to catch all reviews reliably
-    const pollInterval = setInterval(fetchFeedbacks, 10000);
+    const pollInterval = setInterval(() => fetchFeedbacks(true), 10000);
 
     return () => {
       unsubscribe();
@@ -565,16 +567,24 @@ export default function FeedbackReviewsView() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={fetchFeedbacks}
-            disabled={loading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', fontSize: '0.82rem' }}
-          >
-            <RefreshCw size={14} className={loading ? 'spin' : ''} />
-            {loading ? 'Refreshing...' : 'Refresh Reviews'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => fetchFeedbacks(false)}
+              disabled={loading}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', fontSize: '0.82rem' }}
+            >
+              <RefreshCw size={14} className={loading ? 'spin' : ''} />
+              {loading ? 'Refreshing...' : 'Refresh Reviews'}
+            </button>
+            {lastUpdated && (
+              <span style={{ fontSize: '0.65rem', color: '#4B5563', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                Live • updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • auto-refresh 30s
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

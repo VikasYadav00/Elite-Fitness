@@ -46,6 +46,32 @@ async function updateSettings(req, res) {
   return successResponse(res, 'Gym settings updated', rows[0]);
 }
 
+// GET /api/settings/universal-qr - Generate the ONE Universal QR for the gym entrance
+async function getUniversalQR(req, res) {
+  // Universal QR always points to /qr (the service selection page)
+  const frontendBase = process.env.QR_WEB_URL || process.env.GYM_REGISTRATION_URL?.replace(/\/register\/?$/, '') || 'http://localhost:3000';
+  const universalUrl = `${frontendBase.replace(/\/+$/, '')}/qr`;
+
+  try {
+    const qrDataUrl = await QRCode.toDataURL(universalUrl, {
+      width: 400,
+      margin: 2,
+      color: { dark: '#1e293b', light: '#ffffff' },
+    });
+    return successResponse(res, 'Universal QR code generated', {
+      qrDataUrl,
+      universalUrl,
+      gymName: 'Elite Fitness',
+    });
+  } catch (err) {
+    return successResponse(res, 'Universal QR details', {
+      universalUrl,
+      gymName: 'Elite Fitness',
+      note: 'Use any QR code generator with universalUrl to create the QR code.',
+    });
+  }
+}
+
 // GET /api/settings/qr - Generate/get registration QR code
 async function getRegistrationQR(req, res) {
   const registrationUrl = process.env.GYM_REGISTRATION_URL || 'http://localhost:3000/register';
@@ -158,4 +184,4 @@ async function updatePaymentQR(req, res) {
   return successResponse(res, 'Payment QR updated successfully', inMemoryPaymentSettings);
 }
 
-module.exports = { getSettings, updateSettings, getRegistrationQR, getPublicSettings, getPaymentQR, updatePaymentQR };
+module.exports = { getSettings, updateSettings, getRegistrationQR, getUniversalQR, getPublicSettings, getPaymentQR, updatePaymentQR };

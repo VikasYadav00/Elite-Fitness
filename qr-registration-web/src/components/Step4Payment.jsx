@@ -220,12 +220,14 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
       } catch (e) {}
     }
 
-    // Try posting to backend
+    // Post to backend
+    let backendResult = null;
     try {
       const payload = {
-        full_name: formData.full_name,
-        phone: formData.phone,
-        email: formData.email,
+        full_name: formData.full_name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email ? formData.email.trim() : '',
+        password: formData.password || '',
         date_of_birth: formData.date_of_birth || null,
         gender: formData.gender || 'MALE',
         address: formData.address || null,
@@ -237,29 +239,60 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
         proof_note: proofNote.trim()
       };
 
-      // Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
-      publishCloudEvent('NEW_REGISTRATION', payload).catch(() => {});
-
-      await api.post('/registrations/complete', payload).catch(() => {});
+      const res = await api.post('/registrations/complete', payload);
+      if (res.data?.success && res.data?.data) {
+        backendResult = res.data.data;
+      }
     } catch (err) {
-      console.warn('Backend completion note:', err.message);
-    } finally {
-      setLoading(false);
-      onSuccess({
-        registrationId: regId,
-        memberName: formData.full_name,
-        planName: selectedPlan.plan_name,
-        amountPaid: selectedPlan.price,
-        invoiceNumber: invoiceNum,
-        utrNumber: paymentMethod === 'UPI' ? utrNumber.trim() : 'CASH_DUE',
-        paymentMethod: paymentMethod,
-        paymentStatus: paymentMethod === 'UPI' ? 'PENDING_VERIFICATION' : 'PENDING_CASH',
-        isMembershipActive: false, // Inactive until owner verifies
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + (selectedPlan.duration_months || 1) * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      });
+      if (err.response?.status === 409) {
+        setLoading(false);
+        setError(err.response?.data?.message || 'An account with this phone number already exists. Please login.');
+        return;
+      }
+      console.warn('Backend completion note:', err.userMessage || err.message);
     }
+
+    const isCash = paymentMethod === 'CASH';
+
+    // Broadcast registration to cloud sync (reaches Owner App anywhere worldwide on 4G/5G/Wi-Fi)
+    const cloudRegistrationPayload = {
+      registration_id: backendResult?.registrationId || regId,
+      full_name: formData.full_name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email ? formData.email.trim() : '',
+      plan_id: selectedPlan.id,
+      plan_name: selectedPlan.plan_name,
+      amount: Number(selectedPlan.price) || 0,
+      payment_method: paymentMethod,
+      payment_status: isCash ? 'DUE' : 'PENDING',
+      status: 'INACTIVE', // Strictly INACTIVE until owner approves / collects cash
+      utr_number: paymentMethod === 'UPI' ? utrNumber.trim() : 'CASH-PAYMENT-DUE',
+      proof_note: proofNote.trim(),
+      created_at: new Date().toISOString(),
+      end_date: new Date(Date.now() + (selectedPlan.duration_months || 1) * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+    publishCloudEvent('NEW_REGISTRATION', cloudRegistrationPayload).catch(() => {});
+
+    setLoading(false);
+    onSuccess({
+      registrationId: backendResult?.registrationId || regId,
+      memberName: backendResult?.memberName || formData.full_name,
+      phone: formData.phone,
+      planName: backendResult?.planName || selectedPlan.plan_name,
+      amountPaid: backendResult?.amountPaid || selectedPlan.price,
+      invoiceNumber: backendResult?.invoiceNumber || invoiceNum,
+      utrNumber: paymentMethod === 'UPI' ? utrNumber.trim() : 'CASH_DUE',
+      paymentMethod: paymentMethod,
+      paymentStatus: isCash ? 'PENDING_CASH' : (paymentMethod === 'UPI' ? 'PENDING_VERIFICATION' : 'PAID'),
+      isMembershipActive: !isCash && (backendResult?.membershipStatus === 'ACTIVE'),
+      isPassLocked: isCash, // Security guarantee: Pass is locked until cash is paid to gym owner
+      startDate: backendResult?.startDate || new Date().toISOString(),
+      endDate: backendResult?.endDate || new Date(Date.now() + (selectedPlan.duration_months || 1) * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      token: backendResult?.token,
+      userId: backendResult?.userId
+    });
   };
+
 
   return (
     <div className="glass-card animate-fade-in" style={{ padding: '32px' }}>
@@ -612,45 +645,59 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
         </div>
       )}
 
-      {/* CASH PAYMENT NOTICE & INACTIVE ALERT */}
+      {/* CASH PAYMENT NOTICE & STRICT INACTIVE LOCK ALERT */}
       {paymentMethod === 'CASH' && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1.5px solid rgba(239, 68, 68, 0.4)',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '2px solid rgba(239, 68, 68, 0.6)',
           borderRadius: '16px',
           padding: '20px',
           marginBottom: '24px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          gap: '14px',
+          boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <AlertCircle color="#EF4444" size={24} style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Lock color="#EF4444" size={24} />
+            </div>
             <div>
-              <div style={{ fontWeight: 800, color: '#F87171', fontSize: '0.98rem' }}>
-                Cash Payment Verification Notice
+              <div style={{ fontWeight: 900, color: '#F87171', fontSize: '1.05rem', letterSpacing: '0.02em' }}>
+                SECURITY NOTICE: NO PASS ISSUED ONLINE
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                Your membership pass will remain INACTIVE until cash is paid at the gym counter.
+              <div style={{ fontSize: '0.78rem', color: '#CBD5E1', marginTop: '2px' }}>
+                Cash registration generates an <strong>Unpaid Reception Token</strong> only.
               </div>
             </div>
           </div>
 
           <div style={{
-            background: 'rgba(0, 0, 0, 0.35)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            padding: '14px',
+            background: 'rgba(0, 0, 0, 0.45)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            padding: '16px',
             borderRadius: '12px',
-            fontSize: '0.82rem',
+            fontSize: '0.84rem',
             color: '#E2E8F0',
-            lineHeight: 1.5
+            lineHeight: 1.55
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: '#94A3B8' }}>Amount to Pay at Reception:</span>
-              <strong style={{ color: '#F59E0B', fontSize: '1.05rem' }}>₹{selectedPlan?.price}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px dashed rgba(255,255,255,0.15)', paddingBottom: '8px' }}>
+              <span style={{ color: '#94A3B8' }}>Physical Cash Due at Reception:</span>
+              <strong style={{ color: '#EF4444', fontSize: '1.2rem', fontWeight: 900 }}>₹{selectedPlan?.price}</strong>
             </div>
-            <div>
-              🏢 <strong>How it works:</strong> After clicking submit below, you will receive an <strong>Inactive Registration Slip</strong>. Show that slip to the gym manager and hand over the cash. Staff will verify and immediately activate your pass.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#CBD5E1' }}>
+              <div>🚫 <strong>No Entrance Pass / QR Code:</strong> You cannot enter or check in until cash is handed over.</div>
+              <div>🏢 <strong>In-Person Verification:</strong> Hand over ₹{selectedPlan?.price} in cash to the gym reception staff.</div>
+              <div>⚡ <strong>Instant Activation:</strong> Once staff clicks <em>"Collect Cash & Activate"</em> on the owner terminal, your digital pass will unlock instantly.</div>
             </div>
           </div>
         </div>
@@ -666,7 +713,12 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
           className="btn-primary glow-pulse"
           onClick={handlePayAndRegister}
           disabled={loading}
-          style={{ flex: 2 }}
+          style={{
+            flex: 2,
+            background: paymentMethod === 'CASH'
+              ? 'linear-gradient(135deg, #DC2626, #991B1B)'
+              : 'linear-gradient(135deg, #F59E0B, #D97706)'
+          }}
         >
           {loading ? (
             <Loader2 className="animate-spin" size={20} />
@@ -677,7 +729,7 @@ export default function Step4Payment({ formData, selectedPlan, onSuccess, onPrev
               </>
             ) : (
               <>
-                <AlertCircle size={18} /> Submit (Pay ₹{selectedPlan?.price} at Reception)
+                <Lock size={18} /> Generate Unpaid Token (Pay ₹{selectedPlan?.price} at Reception)
               </>
             )
           )}

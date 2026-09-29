@@ -15,7 +15,7 @@ const QUICK_MEMBERS = [
   { reg_id: 'EF26091005', name: 'Vikram Singh', phone: '9876543214', plan: 'Half-Yearly Elite' }
 ];
 
-export default function CheckinPortal() {
+export default function CheckinPortal({ onNavigateToRegister, onBack }) {
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkedIn, setCheckedIn] = useState(null);
@@ -38,7 +38,7 @@ export default function CheckinPortal() {
 
     setLoading(true);
 
-    // Security Check: Verify member status from custom members registry
+    // Security Check: Verify member status from custom members registry and pending requests
     try {
       const customMembers = JSON.parse(localStorage.getItem('ef_custom_members') || '[]');
       const matchedCustom = customMembers.find(
@@ -47,14 +47,32 @@ export default function CheckinPortal() {
       );
 
       if (matchedCustom) {
-        if (matchedCustom.status === 'INACTIVE' || matchedCustom.payment_status === 'DUE' || matchedCustom.payment_status === 'PENDING') {
+        if (
+          matchedCustom.status === 'INACTIVE' ||
+          matchedCustom.payment_status === 'DUE' ||
+          matchedCustom.payment_status === 'PENDING' ||
+          matchedCustom.payment_status === 'PENDING_CASH'
+        ) {
           setLoading(false);
-          const reason = matchedCustom.payment_status === 'DUE'
+          const reason = (matchedCustom.payment_status === 'DUE' || matchedCustom.payment_status === 'PENDING_CASH')
             ? 'Cash payment pending at reception desk'
             : 'Payment verification pending';
-          setError(`🚫 ACCESS DENIED: Membership is INACTIVE (${reason}). Please visit the gym reception desk to complete payment.`);
+          setError(`🚫 ACCESS DENIED: Membership is LOCKED (${reason}). Please visit the gym reception desk to complete payment.`);
           return;
         }
+      }
+
+      const utrRequests = JSON.parse(localStorage.getItem('ef_submitted_utr_requests') || '[]');
+      const matchedReq = utrRequests.find(
+        u => (u.reg_id && u.reg_id.toUpperCase() === targetId)
+      );
+      if (matchedReq && (matchedReq.status === 'PENDING' || matchedReq.status === 'PENDING_CASH')) {
+        setLoading(false);
+        const reason = matchedReq.status === 'PENDING_CASH'
+          ? 'Cash payment pending at reception desk'
+          : 'Payment verification pending';
+        setError(`🚫 ACCESS DENIED: Membership is LOCKED (${reason}). Please visit the gym reception desk to complete payment.`);
+        return;
       }
     } catch (_) {}
 
@@ -68,48 +86,42 @@ export default function CheckinPortal() {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const today = new Date().toISOString().split('T')[0];
 
-    const entryId = `ts-${Date.now()}`;
-    const checkinItem = {
-      id: entryId,
+    // Attempt backend attendance call with active membership verification
+    try {
+      const res = await api.post('/attendance/public-checkin', {
+        registration_id: regId,
+        method: 'QR_TABLE_SCAN',
+        device_fingerprint: `DEV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+      });
+      if (res.data && res.data.success === false) {
+        setLoading(false);
+        setError(`🚫 ACCESS DENIED: ${res.data.message || 'Inactive or unpaid membership.'}`);
+        return;
+      }
+    } catch (err) {
+      if (err.response?.status === 403) {
+        setLoading(false);
+        setError(err.response?.data?.message || '🚫 ACCESS DENIED: No active paid membership found. Please complete payment at the front desk.');
+        return;
+      }
+      // If network unreachable / Render cold start, allow checkin locally and broadcast to cloud
+    }
+
+    const checkinEntry = {
+      id: String(Date.now()),
       reg_id: regId,
       name: memberName,
       time: timeStr,
       date: today,
       method: 'QR (Table Scan)',
       device_id: `MOB-${Math.random().toString(36).substring(2, 6).toUpperCase()}**`,
-      status: 'PRESENT',
-      created_at: new Date().toISOString()
+      status: 'PRESENT'
     };
 
-    // 1. Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
-    try {
-      await publishCloudEvent('ATTENDANCE_CHECKIN', checkinItem);
-    } catch (_) {}
+    // Broadcast check-in to cloud sync (worldwide to Owner App)
+    publishCloudEvent('ATTENDANCE_CHECKIN', checkinEntry).catch(() => {});
 
-    // 2. Attempt backend attendance call via public endpoint (no auth required)
-    try {
-      const res = await api.post('/attendance/public-checkin', {
-        registration_id: regId,
-        phone: targetId,
-        name: memberName,
-        method: 'QR_TABLE_SCAN',
-        device_fingerprint: checkinItem.device_id
-      });
-      if (res.data && res.data.success === false) {
-        setLoading(false);
-        setError(`🚫 ACCESS DENIED: ${res.data.message || 'Inactive membership.'}`);
-        return;
-      }
-    } catch (err) {
-      if (err.response?.status === 403) {
-        setLoading(false);
-        setError('🚫 ACCESS DENIED: No active membership found. Please complete payment at the front desk.');
-        return;
-      }
-      // Network error — check-in already published via cloud sync
-    }
-
-    // 3. Local fallback persistence
+    // Broadcast check-in to Owner App via localStorage storage event
     try {
       const checkinEvent = {
         name: memberName,
@@ -120,8 +132,9 @@ export default function CheckinPortal() {
       };
       localStorage.setItem('ef_member_checkin', JSON.stringify(checkinEvent));
 
+      // Append to attendance logs
       const logs = JSON.parse(localStorage.getItem('ef_attendance_logs') || '[]');
-      const updated = [checkinItem, ...logs.filter(l => l.reg_id !== regId)];
+      const updated = [checkinEntry, ...logs.filter(l => l.reg_id !== regId)];
       localStorage.setItem('ef_attendance_logs', JSON.stringify(updated));
     } catch (_) {}
 
@@ -160,6 +173,19 @@ export default function CheckinPortal() {
         border: '1px solid rgba(245, 158, 11, 0.35)',
         boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
       }}>
+        {/* Back to Universal QR button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#94A3B8', display: 'flex', alignItems: 'center',
+              gap: '5px', fontSize: '0.78rem', marginBottom: '10px', padding: '0'
+            }}
+          >
+            ← Back to Services
+          </button>
+        )}
         <div style={{
           width: '56px',
           height: '56px',

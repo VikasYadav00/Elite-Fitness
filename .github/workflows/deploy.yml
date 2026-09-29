@@ -32,6 +32,9 @@ jobs:
           npm ci || npm install
 
       - name: Build Web Application
+        env:
+          VITE_BASE_PATH: /Elite-Fitness/
+          VITE_API_BASE_URL: https://elite-fitness-backend.onrender.com/api
         run: |
           cd qr-registration-web
           npm run build

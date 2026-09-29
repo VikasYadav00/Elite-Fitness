@@ -2,52 +2,48 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Settings, QrCode, Printer, Save, CreditCard, Upload, Check,
   AlertCircle, Sparkles, X, Download, Wifi, Lock, Eye, EyeOff,
-  ShieldCheck, ExternalLink, Share2
+  ShieldCheck, ExternalLink, Share2, CheckCircle2, Activity, Copy, RefreshCw
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import api from '../api';
+import {
+  getPublicRegistrationUrl,
+  getPublicFeedbackUrl,
+  getPublicAttendanceUrl,
+  getPublicUniversalQrUrl,
+  getApiBaseUrl,
+  getFrontendBaseUrl
+} from '../urlConfig';
 
-// ─── Utility: detect best registration URL ────────────────────────────────────
-export const PUBLIC_REGISTRATION_URL = 'https://vikasyadav00.github.io/Elite-Fitness/';
+// ─── Utility: centralized registration URL ───────────────────────────────────
+export const PUBLIC_REGISTRATION_URL = getPublicRegistrationUrl();
 
 function getRegistrationUrl() {
-  const saved = localStorage.getItem('ef_registration_url');
-  // Auto-upgrade from old LAN/localhost IP to the global GitHub Pages web server URL
-  if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
-    return saved;
-  }
-  return PUBLIC_REGISTRATION_URL;
+  return getPublicRegistrationUrl();
 }
 
-// ─── Print-only QR popup (opens in new window, only shows the standee) ────────
-function printRegistrationQR(gymName, address, regUrl) {
-  const printWindow = window.open('', '_blank', 'width=480,height=650');
+// ─── Print-only Universal QR popup (opens in new window, shows the Universal standee) ────────
+function printUniversalQR(gymName, address, qrUrl) {
+  const printWindow = window.open('', '_blank', 'width=500,height=720');
   if (!printWindow) {
     alert('Pop-up blocked! Please allow pop-ups for this site to print the QR.');
     return;
   }
 
-  // We need to render the QR into a canvas first so we can embed it as base64
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = 300;
-  canvas.height = 300;
-
-  // Use QRCode library via CDN in print window instead
   printWindow.document.write(`
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>${gymName} — Registration QR</title>
+  <title>${gymName} — Universal Gym Services QR</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #fff;
       display: flex;
       align-items: center;
@@ -56,10 +52,10 @@ function printRegistrationQR(gymName, address, regUrl) {
       padding: 20px;
     }
     .standee {
-      width: 420px;
+      width: 430px;
       background: linear-gradient(160deg, #0B0F17 0%, #1E293B 100%);
       border-radius: 24px;
-      padding: 36px 32px;
+      padding: 34px 28px;
       text-align: center;
       border: 3px solid #F59E0B;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -67,14 +63,31 @@ function printRegistrationQR(gymName, address, regUrl) {
     }
     .gym-brand { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 4px; }
     .brand-accent { color: #F59E0B; }
-    .tagline { color: #94A3B8; font-size: 0.8rem; margin-bottom: 28px; letter-spacing: 0.08em; text-transform: uppercase; }
-    .qr-box { background: #fff; padding: 18px; border-radius: 18px; display: inline-block; margin-bottom: 20px; box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
-    .cta { font-size: 1rem; font-weight: 700; color: #F59E0B; margin-bottom: 6px; }
-    .sub { color: #94A3B8; font-size: 0.78rem; margin-bottom: 20px; line-height: 1.5; }
+    .tagline { color: #F59E0B; font-size: 0.8rem; font-weight: 800; margin-bottom: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .qr-box { background: #fff; padding: 18px; border-radius: 18px; display: inline-block; margin-bottom: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+    .cta { font-size: 1.05rem; font-weight: 800; color: #FFFFFF; margin-bottom: 12px; }
+    .services-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    .service-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.74rem;
+      color: #E2E8F0;
+      line-height: 1.3;
+    }
+    .service-pill strong { color: #F59E0B; display: block; font-size: 0.78rem; }
     .gym-name { font-size: 1.1rem; font-weight: 800; color: #F8FAFC; margin-bottom: 4px; }
-    .gym-addr { font-size: 0.72rem; color: #64748B; margin-bottom: 20px; }
-    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; }
-    .url-box { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 10px; padding: 8px 14px; font-size: 0.75rem; color: #F59E0B; word-break: break-all; }
+    .gym-addr { font-size: 0.72rem; color: #64748B; margin-bottom: 12px; }
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin-bottom: 12px; }
+    .url-box { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 10px; padding: 6px 12px; font-size: 0.72rem; color: #F59E0B; word-break: break-all; margin-bottom: 8px; }
+    .footer-note { font-size: 0.68rem; color: #94A3B8; }
     @media print {
       body { background: white; }
     }
@@ -83,29 +96,47 @@ function printRegistrationQR(gymName, address, regUrl) {
 <body>
   <div class="standee">
     <div class="gym-brand">ELITE <span class="brand-accent">FITNESS</span></div>
-    <div class="tagline">📱 SCAN TO REGISTER — FREE</div>
+    <div class="tagline">🌟 ALL-IN-ONE GYM SCANNER</div>
 
     <div class="qr-box">
       <div id="qrcode"></div>
     </div>
 
-    <div class="cta">Scan QR Code to Register</div>
-    <div class="sub">
-      Point your phone camera at the QR above.<br/>
-      Fill in your details and get your instant<br/>digital membership pass!
+    <div class="cta">Scan with Camera or Google Lens</div>
+
+    <div class="services-grid">
+      <div class="service-pill">
+        <strong>🏋️ Daily Attendance</strong>
+        Quick scan check-in
+      </div>
+      <div class="service-pill">
+        <strong>📝 New Registration</strong>
+        Instant digital pass
+      </div>
+      <div class="service-pill">
+        <strong>⭐ Feedback & Review</strong>
+        Rate & leave review
+      </div>
+      <div class="service-pill">
+        <strong>📞 Complaint & Help</strong>
+        Contact gym team
+      </div>
     </div>
+
+    <div class="url-box">${qrUrl}</div>
 
     <hr class="divider"/>
     <div class="gym-name">${gymName}</div>
     <div class="gym-addr">${address}</div>
+    <div class="footer-note">No app download required • Instant mobile portal</div>
   </div>
 
   <script>
     window.onload = function() {
       new QRCode(document.getElementById("qrcode"), {
-        text: "${regUrl}",
-        width: 240,
-        height: 240,
+        text: "${qrUrl}",
+        width: 220,
+        height: 220,
         colorDark: "#000000",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
@@ -118,6 +149,8 @@ function printRegistrationQR(gymName, address, regUrl) {
   `);
   printWindow.document.close();
 }
+
+const printRegistrationQR = printUniversalQR;
 
 // ─── Download QR as PNG ────────────────────────────────────────────────────────
 function downloadQrPng(regUrl, gymName) {
@@ -216,8 +249,16 @@ export default function SettingsView() {
     setTimeout(() => setPwdSuccess(false), 4000);
   };
 
-  // ─── Registration URL — use network-accessible IP ──────────────────────────
+  // ─── Registration & Universal QR URLs — centralized production configuration ────────────────
+  const [universalQrUrl, setUniversalQrUrl] = useState(getPublicUniversalQrUrl());
+  const [customUniversalUrl, setCustomUniversalUrl] = useState('');
   const [regUrl, setRegUrl] = useState(getRegistrationUrl());
+  const [feedbackQrUrl, setFeedbackQrUrl] = useState(getPublicFeedbackUrl());
+  const [attendanceQrUrl, setAttendanceQrUrl] = useState(getPublicAttendanceUrl());
+  const [apiBaseUrl, setApiBaseUrl] = useState(getApiBaseUrl());
+  const [apiHealth, setApiHealth] = useState({ status: 'checking', message: 'Testing backend connection...', latency: null });
+  const [lastGeneratedTime, setLastGeneratedTime] = useState(() => new Date().toLocaleString('en-IN'));
+  const [globalFrontendInput, setGlobalFrontendInput] = useState(() => getFrontendBaseUrl());
 
   const [toastMessage, setToastMessage] = useState(null);
   const [customRegUrl, setCustomRegUrl] = useState('');
@@ -230,19 +271,42 @@ export default function SettingsView() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Live Backend Health Check
+  const checkBackendHealth = async () => {
+    setApiHealth({ status: 'checking', message: 'Pinging backend health endpoint...', latency: null });
+    const start = Date.now();
+    try {
+      const res = await api.get('/health', { timeout: 4000 });
+      const latency = Date.now() - start;
+      if (res.data?.success) {
+        setApiHealth({ status: 'online', message: 'Operational & Connected over HTTPS', latency });
+      } else {
+        setApiHealth({ status: 'online', message: 'Server Active', latency });
+      }
+    } catch (err) {
+      setApiHealth({ status: 'offline', message: 'Backend unreachable. Check server status or CORS.', latency: null });
+    }
+  };
+
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
   const handleSaveGym = (e) => {
     e.preventDefault();
     showToast('Gym profile settings saved successfully!');
   };
 
+  const [downloadingUniversalStandee, setDownloadingUniversalStandee] = useState(false);
+  const [sharingUniversalStandee, setSharingUniversalStandee] = useState(false);
   const [downloadingRegStandee, setDownloadingRegStandee] = useState(false);
   const [sharingRegStandee, setSharingRegStandee] = useState(false);
 
-  // ─── GENERATE REGISTRATION STANDEE CANVAS (CLEAN LUXURY DESIGN) ───────────
-  const generateRegistrationCanvas = () => {
+  // ─── GENERATE UNIVERSAL QR STANDEE CANVAS (CLEAN LUXURY DESIGN) ───────────
+  const generateUniversalCanvas = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 1000;
-    canvas.height = 1450;
+    canvas.height = 1500;
     const ctx = canvas.getContext('2d');
 
     // 1. Dark Luxury Background
@@ -264,26 +328,26 @@ export default function SettingsView() {
 
     // 3. Gym Header Emblem
     ctx.fillStyle = '#F59E0B';
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = 'bold 30px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🏋️  ELITE FITNESS CLUB  🏋️', canvas.width / 2, 130);
+    ctx.fillText('🏋️  ELITE FITNESS CLUB  🏋️', canvas.width / 2, 120);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 62px sans-serif';
-    ctx.fillText('MEMBER REGISTRATION', canvas.width / 2, 210);
+    ctx.font = '900 58px sans-serif';
+    ctx.fillText('ALL-IN-ONE GYM SCANNER', canvas.width / 2, 195);
 
     ctx.fillStyle = '#F59E0B';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('SCAN WITH YOUR PHONE CAMERA TO REGISTER', canvas.width / 2, 260);
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('SCAN WITH YOUR PHONE CAMERA OR GOOGLE LENS', canvas.width / 2, 245);
 
     ctx.fillStyle = '#94A3B8';
-    ctx.font = '22px sans-serif';
-    ctx.fillText('Fast • 100% Paperless • Instant Digital Gym Pass', canvas.width / 2, 305);
+    ctx.font = '20px sans-serif';
+    ctx.fillText('No App Required • Instant Mobile Access to All Gym Services', canvas.width / 2, 285);
 
     // 4. White Rounded QR Box
-    const qrBoxSize = 620;
+    const qrBoxSize = 580;
     const qrBoxX = (canvas.width - qrBoxSize) / 2;
-    const qrBoxY = 350;
+    const qrBoxY = 320;
 
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
@@ -291,57 +355,81 @@ export default function SettingsView() {
     ctx.fill();
 
     if (qrCanvasRef.current) {
-      const qrInnerSize = 520;
+      const qrInnerSize = 490;
       const innerX = (canvas.width - qrInnerSize) / 2;
       const innerY = qrBoxY + (qrBoxSize - qrInnerSize) / 2;
       ctx.drawImage(qrCanvasRef.current, innerX, innerY, qrInnerSize, qrInnerSize);
     }
 
-    // 5. Steps below QR
+    // 5. 4 Available Services Cards below QR
     ctx.fillStyle = '#F59E0B';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('📱 3 EASY STEPS TO JOIN:', canvas.width / 2, 1040);
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText('⚡ 4 SERVICES AVAILABLE ON YOUR PHONE:', canvas.width / 2, 960);
 
-    ctx.fillStyle = '#E2E8F0';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('1. Enter Details  ➔  2. Select Plan  ➔  3. Pay Online', canvas.width / 2, 1090);
+    const cardY = 995;
+    const cardH = 92;
+    const cardW = 410;
+    const gap = 20;
+    const startX = (canvas.width - (cardW * 2 + gap)) / 2;
 
-    ctx.fillStyle = '#94A3B8';
-    ctx.font = '22px sans-serif';
-    ctx.fillText('Get your unique Member ID & Digital Pass immediately on your phone', canvas.width / 2, 1135);
+    const services = [
+      { title: '🏋️ Daily Attendance', desc: 'Scan to check in instantly', x: startX, y: cardY },
+      { title: '📝 New Registration', desc: 'Join gym & get digital pass', x: startX + cardW + gap, y: cardY },
+      { title: '⭐ Feedback & Review', desc: 'Rate your workout experience', x: startX, y: cardY + cardH + 16 },
+      { title: '📞 Complaint & Support', desc: 'Call, WhatsApp & submit ticket', x: startX + cardW + gap, y: cardY + cardH + 16 }
+    ];
+
+    services.forEach(s => {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(s.x, s.y, cardW, cardH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#F59E0B';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(s.title, s.x + 20, s.y + 36);
+
+      ctx.fillStyle = '#CBD5E1';
+      ctx.font = '18px sans-serif';
+      ctx.fillText(s.desc, s.x + 20, s.y + 68);
+    });
 
     // 6. Divider & Gym Address
+    ctx.textAlign = 'center';
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(100, 1185);
-    ctx.lineTo(canvas.width - 100, 1185);
+    ctx.moveTo(80, 1260);
+    ctx.lineTo(canvas.width - 80, 1260);
     ctx.stroke();
 
     ctx.fillStyle = '#F59E0B';
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(`${gym.gym_name} • Help: 8953933110 • ${gym.address}`, canvas.width / 2, 1235);
+    ctx.fillText(`${gym.gym_name} • Help: ${gym.phone} • ${gym.address}`, canvas.width / 2, 1310);
 
-    // Clean footer branding — no raw URL text
+    // Clean footer branding
     ctx.fillStyle = '#64748B';
     ctx.font = '18px sans-serif';
-    ctx.fillText('Powered by Elite Fitness Management System', canvas.width / 2, 1295);
+    ctx.fillText('Official Reception Standee • Elite Fitness Management System', canvas.width / 2, 1360);
 
     return canvas;
   };
 
-  // ─── DOWNLOAD REGISTRATION QR (SAVES DIRECTLY TO PHONE STORAGE) ───────────
-  const handleDownloadRegistrationQR = async () => {
-    setDownloadingRegStandee(true);
-    showToast('⏳ Downloading Registration Standee...');
+  // ─── DOWNLOAD UNIVERSAL QR (SAVES DIRECTLY TO PHONE STORAGE) ───────────
+  const handleDownloadUniversalQR = async () => {
+    setDownloadingUniversalStandee(true);
+    showToast('⏳ Downloading Universal QR Standee...');
 
     try {
-      const canvas = generateRegistrationCanvas();
-      const filename = `EliteFitness_Registration_Standee_${Date.now()}.png`;
+      const canvas = generateUniversalCanvas();
+      const filename = `EliteFitness_Universal_QR_Standee_${Date.now()}.png`;
       const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
       if (isNative) {
-        // Mobile APK: write directly to Documents without opening share sheet
         const dataUrl = canvas.toDataURL('image/png');
         const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
 
@@ -372,24 +460,24 @@ export default function SettingsView() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast('✅ Downloaded Registration Standee!');
+        showToast('✅ Downloaded Universal QR Standee!');
       }
     } catch (err) {
       console.error(err);
       showToast('⚠️ Could not complete download. Try print button.');
     } finally {
-      setDownloadingRegStandee(false);
+      setDownloadingUniversalStandee(false);
     }
   };
 
-  // ─── SHARE REGISTRATION QR (OPENS NATIVE SHARE SHEET / WHATSAPP) ──────────
-  const handleShareRegistrationQR = async () => {
-    setSharingRegStandee(true);
+  // ─── SHARE UNIVERSAL QR (OPENS NATIVE SHARE SHEET / WHATSAPP) ──────────
+  const handleShareUniversalQR = async () => {
+    setSharingUniversalStandee(true);
     showToast('⏳ Opening share options...');
 
     try {
-      const canvas = generateRegistrationCanvas();
-      const filename = `EliteFitness_Registration_Standee_${Date.now()}.png`;
+      const canvas = generateUniversalCanvas();
+      const filename = `EliteFitness_Universal_QR_Standee_${Date.now()}.png`;
       const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
       if (isNative) {
@@ -417,8 +505,8 @@ export default function SettingsView() {
 
         if (fileUri) {
           await Share.share({
-            title: 'Elite Fitness Registration Standee',
-            text: 'Official Reception Registration Standee — Print and paste on reception desk.',
+            title: 'Elite Fitness Universal Standee',
+            text: 'Official Universal Gym Standee — Print and paste on reception desk for attendance, registration, feedback & support.',
             url: fileUri,
             dialogTitle: `Share Standee (${filename})`
           });
@@ -429,8 +517,8 @@ export default function SettingsView() {
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], filename, { type: 'image/png' });
           await navigator.share({
-            title: 'Elite Fitness Registration Standee',
-            text: 'Official Reception Registration Standee',
+            title: 'Elite Fitness Universal Standee',
+            text: 'Official Universal Gym Standee — Print and paste on reception desk',
             files: [file]
           });
         } else {
@@ -440,7 +528,7 @@ export default function SettingsView() {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          showToast('✅ Downloaded Registration Standee to share!');
+          showToast('✅ Downloaded Universal Standee to share!');
         }
       }
     } catch (err) {
@@ -448,13 +536,16 @@ export default function SettingsView() {
         showToast('⚠️ Could not open share options.');
       }
     } finally {
-      setSharingRegStandee(false);
+      setSharingUniversalStandee(false);
     }
   };
 
   const handlePrintQR = () => {
-    printRegistrationQR(gym.gym_name, gym.address, regUrl);
+    printUniversalQR(gym.gym_name, gym.address, universalQrUrl);
   };
+
+  const handleDownloadRegistrationQR = handleDownloadUniversalQR;
+  const handleShareRegistrationQR = handleShareUniversalQR;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -539,33 +630,64 @@ export default function SettingsView() {
         <div style={{ position: 'fixed', left: '-9999px', top: '-9999px' }}>
           <QRCodeCanvas
             ref={qrCanvasRef}
-            value={regUrl}
+            value={universalQrUrl}
             size={520}
             level="H"
             includeMargin={false}
           />
         </div>
 
-        {/* Registration QR Standee */}
+        {/* Universal QR Standee (The ONE permanent reception standee) */}
         <div className="glass-card" style={{
           padding: '24px', textAlign: 'center',
           background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-          border: '2px solid #F59E0B'
+          border: '2px solid #F59E0B',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <h4 style={{ fontSize: '0.85rem', color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-            🏋️ REGISTRATION QR
+          <div style={{
+            position: 'absolute', top: '12px', right: '-32px',
+            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+            color: '#000', fontSize: '0.65rem', fontWeight: 900,
+            padding: '3px 36px', transform: 'rotate(45deg)',
+            letterSpacing: '0.05em', boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+          }}>
+            PRIMARY
+          </div>
+
+          <h4 style={{ fontSize: '0.9rem', color: '#F59E0B', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+            🌟 ONE UNIVERSAL QR CODE
           </h4>
-          <p style={{ color: '#9CA3AF', fontSize: '0.72rem', marginBottom: '16px' }}>
-            Members scan this to register & pay at reception
+          <p style={{ color: '#9CA3AF', fontSize: '0.74rem', marginBottom: '14px', lineHeight: 1.4 }}>
+            Single permanent QR displayed at gym reception for <strong>all services</strong>
           </p>
 
-          {/* QR Code — only the QR */}
+          {/* QR Code Container */}
           <div style={{
-            background: '#FFF', padding: '16px', borderRadius: '16px',
-            display: 'inline-block', marginBottom: '14px',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.5)'
+            background: '#FFF', padding: '16px', borderRadius: '18px',
+            display: 'inline-block', marginBottom: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.6)'
           }}>
-            <QRCodeSVG value={regUrl} size={160} level="H" />
+            <QRCodeSVG value={universalQrUrl} size={165} level="H" />
+          </div>
+
+          {/* 4 Services Pills Grid */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px',
+            marginBottom: '14px', textAlign: 'left'
+          }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
+              <span style={{ color: '#10B981', fontWeight: 800 }}>🏋️ Attendance</span>
+            </div>
+            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
+              <span style={{ color: '#F59E0B', fontWeight: 800 }}>📝 Registration</span>
+            </div>
+            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
+              <span style={{ color: '#F59E0B', fontWeight: 800 }}>⭐ Feedback</span>
+            </div>
+            <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
+              <span style={{ color: '#38BDF8', fontWeight: 800 }}>📞 Support</span>
+            </div>
           </div>
 
           <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#F8FAFC', marginBottom: '2px' }}>
@@ -578,13 +700,13 @@ export default function SettingsView() {
           {/* Network URL display */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
-            margin: '8px 0 16px',
-            padding: '6px 12px', background: 'rgba(56,189,248,0.1)',
-            border: '1px solid rgba(56,189,248,0.3)', borderRadius: '8px',
-            fontSize: '0.7rem', color: '#38BDF8', fontFamily: 'monospace'
+            margin: '8px 0 14px',
+            padding: '6px 12px', background: 'rgba(245,158,11,0.1)',
+            border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px',
+            fontSize: '0.72rem', color: '#F59E0B', fontFamily: 'monospace', wordBreak: 'break-all'
           }}>
             <Wifi size={12} />
-            {regUrl}
+            {universalQrUrl}
           </div>
 
           {/* Custom URL input */}
@@ -594,19 +716,20 @@ export default function SettingsView() {
                 type="text"
                 className="input-field"
                 style={{ fontSize: '0.8rem', padding: '8px 12px', marginBottom: '6px' }}
-                placeholder="e.g. https://vikasyadav00.github.io/Elite-Fitness/"
-                value={customRegUrl}
-                onChange={e => setCustomRegUrl(e.target.value)}
+                placeholder="e.g. https://vikasyadav00.github.io/Elite-Fitness/qr"
+                value={customUniversalUrl}
+                onChange={e => setCustomUniversalUrl(e.target.value)}
               />
               <button
                 className="btn-primary"
                 style={{ width: '100%', padding: '8px', fontSize: '0.8rem', marginBottom: '4px' }}
                 onClick={() => {
-                  if (customRegUrl) {
-                    setRegUrl(customRegUrl.trim());
-                    localStorage.setItem('ef_registration_url', customRegUrl.trim());
+                  if (customUniversalUrl) {
+                    const cleanUrl = customUniversalUrl.trim();
+                    setUniversalQrUrl(cleanUrl);
+                    localStorage.setItem('ef_universal_qr_url', cleanUrl);
                     setShowUrlEdit(false);
-                    showToast('Registration URL updated!');
+                    showToast('Universal QR URL updated!');
                   }
                 }}
               >
@@ -629,11 +752,11 @@ export default function SettingsView() {
                   gap: '6px',
                   fontWeight: 800
                 }}
-                onClick={handleDownloadRegistrationQR}
-                disabled={downloadingRegStandee}
+                onClick={handleDownloadUniversalQR}
+                disabled={downloadingUniversalStandee}
               >
                 <Download size={16} />
-                {downloadingRegStandee ? 'Saving...' : 'Download'}
+                {downloadingUniversalStandee ? 'Saving...' : 'Download'}
               </button>
 
               <button
@@ -652,11 +775,11 @@ export default function SettingsView() {
                   borderRadius: '10px',
                   cursor: 'pointer'
                 }}
-                onClick={handleShareRegistrationQR}
-                disabled={sharingRegStandee}
+                onClick={handleShareUniversalQR}
+                disabled={sharingUniversalStandee}
               >
                 <Share2 size={16} />
-                {sharingRegStandee ? 'Sharing...' : 'Share'}
+                {sharingUniversalStandee ? 'Sharing...' : 'Share'}
               </button>
             </div>
 
@@ -671,7 +794,7 @@ export default function SettingsView() {
               </button>
 
               <a
-                href={regUrl}
+                href={universalQrUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="btn-secondary"
@@ -697,16 +820,371 @@ export default function SettingsView() {
               style={{ width: '100%', fontSize: '0.78rem', padding: '8px' }}
               onClick={() => setShowUrlEdit(!showUrlEdit)}
             >
-              <Wifi size={14} /> {showUrlEdit ? 'Cancel URL Change' : 'Change Registration URL'}
+              <Wifi size={14} /> {showUrlEdit ? 'Cancel URL Change' : 'Change Universal QR URL'}
             </button>
           </div>
 
           <div style={{ marginTop: '10px', fontSize: '0.68rem', color: '#64748B', lineHeight: 1.5 }}>
-            💡 Scanned by customer phones at reception to enter details & pay online directly
+            💡 Scanned by customer phones at reception to access Attendance, Registration, Feedback & Support
           </div>
         </div>
       </div>
 
+      {/* ─── QR DEPLOYMENT & PRODUCTION VALIDATION HUB (Requirement 17) ────── */}
+      <div className="glass-card" style={{
+        padding: '24px',
+        border: '1.5px solid rgba(245, 158, 11, 0.4)',
+        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(11, 15, 23, 0.98))'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+              <ShieldCheck size={13} /> PRODUCTION DEPLOYMENT & QR AUDIT HUB
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+              Live QR Code Validation & Destination Status
+            </h3>
+            <p style={{ color: '#9CA3AF', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+              Verify production URLs, inspect QR endpoints, test direct mobile routing, and regenerate standees.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={checkBackendHealth}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '8px 14px' }}
+            >
+              <RefreshCw size={14} className={apiHealth.status === 'checking' ? 'animate-spin' : ''} />
+              Re-test Backend API
+            </button>
+          </div>
+        </div>
+
+        {/* Live Backend Connection Indicator */}
+        <div style={{
+          padding: '14px 18px',
+          borderRadius: '12px',
+          background: apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.08)' : (apiHealth.status === 'checking' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)'),
+          border: `1px solid ${apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.3)' : (apiHealth.status === 'checking' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)')}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '10px', height: '10px', borderRadius: '50%',
+              background: apiHealth.status === 'online' ? '#10B981' : (apiHealth.status === 'checking' ? '#F59E0B' : '#EF4444'),
+              boxShadow: `0 0 10px ${apiHealth.status === 'online' ? '#10B981' : '#F59E0B'}`
+            }} />
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F9FAFB' }}>
+                Backend API: <span style={{ fontFamily: 'monospace', color: '#38BDF8' }}>{apiBaseUrl}</span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: '2px' }}>
+                {apiHealth.message} {apiHealth.latency !== null && `(${apiHealth.latency}ms)`}
+              </div>
+            </div>
+          </div>
+          <div style={{
+            fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: '6px',
+            background: apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+            color: apiHealth.status === 'online' ? '#10B981' : '#F87171'
+          }}>
+            {apiHealth.status === 'online' ? '🟢 OPERATIONAL' : (apiHealth.status === 'checking' ? '🟡 CHECKING' : '🔴 OFFLINE')}
+          </div>
+        </div>
+
+        {/* QR Validation Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+          
+          {/* Universal QR Card (Primary) */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            border: '2px solid rgba(245, 158, 11, 0.45)',
+            borderRadius: '16px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative',
+            boxShadow: '0 4px 20px rgba(245, 158, 11, 0.1)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#F59E0B' }}>🌟 UNIVERSAL QR (ALL-IN-ONE)</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '2px 8px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B' }}>
+                  PRIMARY RECEPTION
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{
+                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#F59E0B',
+                wordBreak: 'break-all', marginBottom: '10px'
+              }}>
+                {universalQrUrl}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+                <span>Route: <strong>/qr</strong></span>
+                <span>Services: <strong>4 in 1</strong></span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <a
+                href={universalQrUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#F59E0B' }}
+              >
+                <ExternalLink size={12} /> Test Link
+              </a>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  if (navigator.clipboard) navigator.clipboard.writeText(universalQrUrl);
+                  showToast('✅ Universal QR URL copied to clipboard!');
+                }}
+                style={{ fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <Copy size={12} /> Copy URL
+              </button>
+            </div>
+          </div>
+
+          {/* Feedback QR Card */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            borderRadius: '16px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F59E0B' }}>⭐ FEEDBACK QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}>
+                  ACTIVE
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{
+                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#38BDF8',
+                wordBreak: 'break-all', marginBottom: '10px'
+              }}>
+                {feedbackQrUrl}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+                <span>Route: <strong>/feedback</strong></span>
+                <span>Last Generated: <strong>{lastGeneratedTime}</strong></span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <a
+                href={feedbackQrUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <ExternalLink size={12} /> Test Link
+              </a>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  if (navigator.clipboard) navigator.clipboard.writeText(feedbackQrUrl);
+                  showToast('✅ Feedback URL copied to clipboard!');
+                }}
+                style={{ fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <Copy size={12} /> Copy URL
+              </button>
+            </div>
+          </div>
+
+          {/* Registration QR Card */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            borderRadius: '16px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#10B981' }}>🏋️ REGISTRATION QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}>
+                  ACTIVE
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{
+                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#10B981',
+                wordBreak: 'break-all', marginBottom: '10px'
+              }}>
+                {regUrl}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+                <span>Route: <strong>/register</strong></span>
+                <span>Last Generated: <strong>{lastGeneratedTime}</strong></span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <a
+                href={regUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <ExternalLink size={12} /> Test Link
+              </a>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  if (navigator.clipboard) navigator.clipboard.writeText(regUrl);
+                  showToast('✅ Registration URL copied to clipboard!');
+                }}
+                style={{ fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <Copy size={12} /> Copy URL
+              </button>
+            </div>
+          </div>
+
+          {/* Table Attendance QR Card */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            borderRadius: '16px',
+            padding: '18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38BDF8' }}>🔵 TABLE ATTENDANCE QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8' }}>
+                  ACTIVE
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{
+                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#38BDF8',
+                wordBreak: 'break-all', marginBottom: '10px'
+              }}>
+                {attendanceQrUrl}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+                <span>Route: <strong>/checkin</strong></span>
+                <span>Type: <strong>Table Scan</strong></span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <a
+                href={attendanceQrUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary"
+                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <ExternalLink size={12} /> Test Link
+              </a>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  if (navigator.clipboard) navigator.clipboard.writeText(attendanceQrUrl);
+                  showToast('✅ Attendance URL copied to clipboard!');
+                }}
+                style={{ fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+              >
+                <Copy size={12} /> Copy URL
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Global Production Domain Switcher */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
+          padding: '16px'
+        }}>
+          <h4 style={{ fontSize: '0.85rem', color: '#F59E0B', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Wifi size={14} /> Synchronize All QR Codes to a Production Domain
+          </h4>
+          <p style={{ color: '#9CA3AF', fontSize: '0.75rem', margin: '0 0 12px 0' }}>
+            If you change your GitHub Pages repository name or switch to a custom domain (e.g. <code>https://gym.elitefitness.com</code>), enter it below to update Universal QR, Feedback, Registration, and Attendance QR codes at once.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              className="input-field"
+              value={globalFrontendInput}
+              onChange={(e) => setGlobalFrontendInput(e.target.value)}
+              placeholder="e.g. https://vikasyadav00.github.io/Elite-Fitness"
+              style={{ flex: 1, minWidth: '260px', fontSize: '0.82rem' }}
+            />
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                const clean = (globalFrontendInput || '').trim().replace(/\/+$/, '');
+                if (clean) {
+                  localStorage.setItem('ef_frontend_url', clean);
+                  localStorage.setItem('ef_universal_qr_url', `${clean}/qr`);
+                  localStorage.setItem('ef_registration_url', `${clean}/register`);
+                  localStorage.setItem('ef_feedback_qr_url', `${clean}/feedback`);
+                  localStorage.setItem('ef_attendance_url', `${clean}/checkin`);
+                  setUniversalQrUrl(`${clean}/qr`);
+                  setRegUrl(`${clean}/register`);
+                  setFeedbackQrUrl(`${clean}/feedback`);
+                  setAttendanceQrUrl(`${clean}/checkin`);
+                  setLastGeneratedTime(new Date().toLocaleString('en-IN'));
+                  showToast('✅ All QR Codes updated to: ' + clean);
+                }
+              }}
+              style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+            >
+              Update All QR Codes
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Change Password Section ─────────────────────────────────────────── */}
       <div className="glass-card" style={{

@@ -24,8 +24,10 @@ async function startServer() {
       logger.warn('⚠️ Database connection note: Could not connect to PostgreSQL. Running in preview mode.', dbErr.message);
     }
 
-    // Initialize cron jobs & cloud sync service
+    // Initialize cron jobs
     initCronJobs();
+
+    // Initialize cloud sync service for worldwide GitHub Pages QR events
     initCloudSyncService();
 
     // Start server

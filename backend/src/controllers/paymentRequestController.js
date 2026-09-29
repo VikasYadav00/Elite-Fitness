@@ -136,9 +136,12 @@ async function verifyPaymentRequest(req, res) {
 
   const pr = reqRows[0];
 
-  if (pr.status !== 'PENDING') {
+  if (pr.status !== 'PENDING' && pr.status !== 'PENDING_CASH') {
     return errorResponse(res, `This request is already ${pr.status}.`, null, 409);
   }
+
+  const isCash = pr.utr_number === 'CASH_DUE' || pr.utr_number === 'CASH-PAYMENT-DUE' || pr.status === 'PENDING_CASH';
+  const paymentMethod = isCash ? 'CASH' : 'UPI';
 
   const result = await withTransaction(async (client) => {
     // Expire existing active memberships
@@ -166,8 +169,15 @@ async function verifyPaymentRequest(req, res) {
     // Record payment entry
     await client.query(
       `INSERT INTO payments (member_id, membership_id, amount, payment_method, invoice_number, status, payment_date, notes)
-       VALUES ($1, $2, $3, 'UPI', $4, 'SUCCESS', NOW(), $5)`,
-      [pr.member_id, newMembership.id, pr.amount, invoiceNumber, `UTR: ${pr.utr_number}`]
+       VALUES ($1, $2, $3, $4, $5, 'SUCCESS', NOW(), $6)`,
+      [
+        pr.member_id,
+        newMembership.id,
+        pr.amount,
+        paymentMethod,
+        invoiceNumber,
+        isCash ? 'Cash collected and verified at reception' : `UTR: ${pr.utr_number}`
+      ]
     );
 
     // Update member status to ACTIVE
@@ -192,10 +202,23 @@ async function verifyPaymentRequest(req, res) {
       [ownerId, newMembership.id, id]
     );
 
+    // Update any matching registration record to COMPLETED
+    try {
+      await client.query(
+        `UPDATE registrations SET status = 'COMPLETED', updated_at = NOW() WHERE member_id = $1`,
+        [pr.member_id]
+      );
+    } catch (_) {}
+
     return { request: updatedReq[0], membership: newMembership, invoice: invoiceNumber };
   });
 
-  logger.info(`UTR Verified: request_id=${id}, member_id=${pr.member_id}, utr=${pr.utr_number}`);
+  try {
+    const { markRegistrationPaid } = require('./registrationController');
+    markRegistrationPaid(pr.member_id);
+  } catch (_) {}
+
+  logger.info(`Payment Request Verified: request_id=${id}, member_id=${pr.member_id}, method=${paymentMethod}`);
   return successResponse(res, `Payment verified! Membership activated until ${result.membership.end_date}`, result);
 }
 
@@ -209,7 +232,7 @@ async function rejectPaymentRequest(req, res) {
   if (reqRows.length === 0) {
     return errorResponse(res, 'Payment request not found.', null, 404);
   }
-  if (reqRows[0].status !== 'PENDING') {
+  if (reqRows[0].status !== 'PENDING' && reqRows[0].status !== 'PENDING_CASH') {
     return errorResponse(res, `This request is already ${reqRows[0].status}.`, null, 409);
   }
 
@@ -218,12 +241,13 @@ async function rejectPaymentRequest(req, res) {
        status = 'REJECTED', verified_at = NOW(), verified_by = $1,
        rejection_reason = $2, updated_at = NOW()
      WHERE id = $3 RETURNING *`,
-    [ownerId, rejection_reason || 'UTR number could not be verified.', id]
+    [ownerId, rejection_reason || 'Payment could not be verified.', id]
   );
 
-  logger.info(`UTR Rejected: request_id=${id}, reason=${rejection_reason}`);
+  logger.info(`Payment Request Rejected: request_id=${id}, reason=${rejection_reason}`);
   return successResponse(res, 'Payment request rejected.', rows[0]);
 }
+
 
 module.exports = {
   submitPaymentRequest, getPaymentRequests, getMyPaymentRequests,

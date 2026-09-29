@@ -2,73 +2,10 @@
 const { query } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/response');
 
-// In-memory fallback cache so feedback works seamlessly even if DB table is initializing
-let inMemoryFeedbacks = [
-  {
-    id: 'fb-101',
-    name: 'Rohit Malhotra',
-    phone: '9876543210',
-    member_status: 'ACTIVE_MEMBER',
-    rating: 5,
-    cleanliness_rating: 5,
-    equipment_rating: 5,
-    trainer_rating: 5,
-    category: 'TRAINER',
-    comments: 'Superb guidance by trainer Amit Sir! Helped me correct my squat and deadlift posture within a week. Highly recommended gym in Sector 14.',
-    source: 'GOOGLE_LENS_QR',
-    status: 'ACKNOWLEDGED',
-    owner_notes: 'Thank you Rohit! Keep pushing hard.',
-    created_at: new Date(Date.now() - 3600000 * 4).toISOString()
-  },
-  {
-    id: 'fb-102',
-    name: 'Ananya Sharma',
-    phone: '9812345678',
-    member_status: 'ACTIVE_MEMBER',
-    rating: 5,
-    cleanliness_rating: 5,
-    equipment_rating: 5,
-    trainer_rating: 5,
-    category: 'CLEANLINESS',
-    comments: 'Very clean workout floor, air conditioning is always optimal, and changing rooms are sanitized regularly. 5 stars for hygiene!',
-    source: 'GOOGLE_LENS_QR',
-    status: 'ACKNOWLEDGED',
-    owner_notes: '',
-    created_at: new Date(Date.now() - 3600000 * 18).toISOString()
-  },
-  {
-    id: 'fb-103',
-    name: 'Vikas Kushwaha',
-    phone: '8953933110',
-    member_status: 'ACTIVE_MEMBER',
-    rating: 4,
-    cleanliness_rating: 5,
-    equipment_rating: 4,
-    trainer_rating: 5,
-    category: 'EQUIPMENT',
-    comments: 'Great machines. Could you please add one more cable crossover machine? It gets a little crowded during 7 PM evening peak hours.',
-    source: 'GOOGLE_LENS_QR',
-    status: 'NEW',
-    owner_notes: '',
-    created_at: new Date(Date.now() - 3600000 * 32).toISOString()
-  },
-  {
-    id: 'fb-104',
-    name: 'Pooja Tiwari',
-    phone: '9765432198',
-    member_status: 'TRIAL_GUEST',
-    rating: 5,
-    cleanliness_rating: 5,
-    equipment_rating: 5,
-    trainer_rating: 5,
-    category: 'GENERAL',
-    comments: 'Took a trial session today. The reception staff was very welcoming and explained all membership packages clearly. Taking the 6-month pass tomorrow!',
-    source: 'GOOGLE_LENS_QR',
-    status: 'NEW',
-    owner_notes: '',
-    created_at: new Date(Date.now() - 3600000 * 50).toISOString()
-  }
-];
+// In-memory cache — acts as a short-lived buffer within the current server process.
+// NOTE: This resets on every server restart (Render free-tier sleep/wake cycles).
+// Real persistence is the PostgreSQL DB. In-memory is only a within-session safety net.
+let inMemoryFeedbacks = [];
 
 // Helper to auto-create table if needed
 async function ensureFeedbackTable() {
@@ -130,10 +67,8 @@ async function submitFeedback(req, res) {
     created_at: new Date().toISOString()
   };
 
-  // Prepend to in-memory store
-  inMemoryFeedbacks = [newFeedback, ...inMemoryFeedbacks];
-
-  // Also persist to DB if table is accessible
+  // Try DB first — this is the primary persistent store
+  let dbSaved = false;
   try {
     await query(
       `INSERT INTO feedbacks (id, name, phone, member_status, rating, cleanliness_rating, equipment_rating, trainer_rating, category, comments, source, status, owner_notes, created_at)
@@ -154,35 +89,45 @@ async function submitFeedback(req, res) {
         newFeedback.owner_notes
       ]
     );
+    dbSaved = true;
   } catch (err) {
-    // Database write optional; in-memory fallback already has it
+    // DB unavailable — fall through to in-memory cache as session-level backup
+    console.error('[Feedback] DB insert failed, using in-memory fallback:', err.message);
   }
 
-  return successResponse(res, 'Thank you! Your feedback has been submitted successfully.', newFeedback, 201);
+  // Always prepend to in-memory store so GET works within this server session
+  inMemoryFeedbacks = [newFeedback, ...inMemoryFeedbacks];
+
+  return successResponse(res, 'Thank you! Your feedback has been submitted successfully.', { ...newFeedback, dbSaved }, 201);
 }
 
 // GET /api/feedback - Retrieve all feedbacks (Owner & Public review count)
 async function getFeedbacks(req, res) {
-  let dbRows = [];
+  // Always try DB first — it is the authoritative, persistent store
   try {
     const { rows } = await query(`SELECT * FROM feedbacks ORDER BY created_at DESC`);
     if (rows && rows.length > 0) {
-      dbRows = rows;
+      // DB has data: return it directly, also merge any in-memory items not yet in DB
+      const map = new Map();
+      rows.forEach(f => map.set(f.id, f));
+      // Add in-memory items that may not have reached DB yet (same session inserts)
+      inMemoryFeedbacks.forEach(f => {
+        if (!map.has(f.id)) map.set(f.id, f);
+      });
+      const all = Array.from(map.values()).sort(
+        (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      );
+      return successResponse(res, 'Feedbacks retrieved', all);
     }
   } catch (err) {
-    // DB offline fallback
+    console.error('[Feedback] DB read failed, falling back to in-memory:', err.message);
   }
 
-  // Merge: dbRows + inMemoryFeedbacks (deduplicated by id)
-  const map = new Map();
-  inMemoryFeedbacks.forEach(f => map.set(f.id, f));
-  dbRows.forEach(f => map.set(f.id, f));
-
-  const all = Array.from(map.values()).sort(
+  // DB offline or empty — return whatever we have in-memory for this server session
+  const sorted = [...inMemoryFeedbacks].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
   );
-
-  return successResponse(res, 'Feedbacks retrieved', all);
+  return successResponse(res, 'Feedbacks retrieved (in-memory fallback)', sorted);
 }
 
 // PATCH /api/feedback/:id/status - Update feedback status / owner note

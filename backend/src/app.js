@@ -33,6 +33,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const paymentRequestRoutes = require('./routes/paymentRequestRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const complaintRoutes = require('./routes/complaintRoutes');
 
 const app = express();
 
@@ -41,30 +42,48 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// CORS configuration
-const allowedOrigins = [
-  process.env.QR_WEB_URL || 'http://localhost:3000',
-  process.env.OWNER_APP_URL || 'http://localhost:3001',
-  'http://localhost:5173',
+// CORS configuration - Production & Development
+const configuredOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.QR_WEB_URL,
+  process.env.OWNER_APP_URL,
+  'https://vikasyadav00.github.io',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
+  'http://localhost:5173',
   'capacitor://localhost',
   'http://localhost',
   'https://localhost',
-  // GitHub Pages - public QR portal for worldwide member scanning
-  'https://vikasyadav00.github.io',
-];
+].filter(Boolean);
 
-app.use(cors({
+// Parse comma-separated origins if provided
+if (process.env.CORS_ORIGIN) {
+  process.env.CORS_ORIGIN.split(',').forEach((o) => {
+    const trimmed = o.trim();
+    if (trimmed && !configuredOrigins.includes(trimmed)) {
+      configuredOrigins.push(trimmed);
+    }
+  });
+}
+
+const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
+    // Allow requests with no origin (mobile native apps, Postman, curl, server-to-server)
     if (!origin) return callback(null, true);
-    // Always allow GitHub Pages public QR portal
-    if (origin.includes('github.io')) return callback(null, true);
-    // Allow capacitor, localhost, or any local LAN IP (192.168.x.x, 10.x.x.x, 172.x.x.x)
+
+    // Exact match in configured origins
+    if (configuredOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow GitHub Pages deployment domains (*.github.io)
+    if (/^https:\/\/[a-zA-Z0-9-]+\.github\.io$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Capacitor, localhost, or private LAN IPs (192.168.x.x, 10.x.x.x, 172.x.x.x)
     if (
-      allowedOrigins.includes(origin) ||
       origin.startsWith('capacitor://') ||
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
@@ -72,16 +91,25 @@ app.use(cors({
     ) {
       return callback(null, true);
     }
-    // In development mode, allow all origins
+
+    // In development mode, allow any origin
     if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+
+    logger.warn(`Blocked by CORS: origin=${origin}`);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400, // 24 hours preflight cache
+};
+
+app.use(cors(corsOptions));
+// Handle preflight across all routes
+app.options('*', cors(corsOptions));
 
 // Request logging
 app.use(morgan('combined', {
@@ -149,6 +177,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/payment-requests', paymentRequestRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Not found & Error handlers
 app.use(notFound);

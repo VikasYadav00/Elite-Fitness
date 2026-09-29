@@ -5,6 +5,7 @@ import {
   CreditCard, Wallet, Sparkles, RefreshCw, TrendingUp
 } from 'lucide-react';
 import api from '../api';
+import { fetchCloudEvents, subscribeCloudStream, publishCloudEvent } from '../utils/cloudSync';
 
 const MOCK_PAYMENTS = [
   { id: '1', invoice_number: 'EF-INV-9901', member_name: 'Rahul Sharma', plan: 'Quarterly Beast Mode', amount: 2699, method: 'UPI', status: 'SUCCESS', date: '2026-09-18' },
@@ -127,7 +128,7 @@ export default function PaymentsView() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Try to load real UTR requests from backend and combine with persistent local submissions
+  // Try to load real UTR requests from backend, persistent local submissions, and worldwide cloud sync
   useEffect(() => {
     async function loadRequests() {
       let baseList = [...MOCK_UTR_REQUESTS];
@@ -138,21 +139,56 @@ export default function PaymentsView() {
         }
       } catch (e) {}
 
+      // Fetch cloud registrations from GitHub Pages worldwide
       try {
-        const res = await api.get('/payment-requests?status=PENDING');
-        if (res.data?.success && res.data?.data?.length > 0) {
-          const fetched = res.data.data.map(r => ({
-            id: String(r.id),
-            member_name: r.member_name || r.full_name || 'Member',
+        const cloudEvents = await fetchCloudEvents('24h');
+        const cloudRegs = cloudEvents
+          .filter(e => e.event === 'NEW_REGISTRATION' && e.data)
+          .map(e => e.data);
+        cloudRegs.forEach(r => {
+          const isCash = r.payment_method === 'CASH';
+          baseList.push({
+            id: 'reg_pay_' + r.registration_id,
+            member_name: r.full_name || 'Member',
             reg_id: r.registration_id || 'N/A',
             plan: r.plan_name || 'Membership Plan',
             amount: parseFloat(r.amount) || 0,
-            utr_number: r.utr_number || 'Not Provided',
+            utr_number: r.utr_number || (isCash ? 'CASH-PAYMENT-DUE' : 'Not Provided'),
+            method: isCash ? 'CASH' : 'UPI',
             proof_note: r.proof_note || '',
-            submitted_at: r.submitted_at || r.created_at,
-            status: r.status || 'PENDING'
-          }));
-          baseList = [...baseList, ...fetched];
+            submitted_at: r.created_at || new Date().toISOString(),
+            status: isCash ? 'PENDING_CASH' : 'PENDING'
+          });
+        });
+      } catch (_) {}
+
+      try {
+        const [pendingRes, cashRes] = await Promise.allSettled([
+          api.get('/payment-requests?status=PENDING'),
+          api.get('/payment-requests?status=PENDING_CASH')
+        ]);
+        const fetchedAll = [];
+        for (const res of [pendingRes, cashRes]) {
+          if (res.status === 'fulfilled' && res.value.data?.success && res.value.data?.data?.length > 0) {
+            res.value.data.data.forEach(r => {
+              const isCash = r.utr_number === 'CASH_DUE' || r.utr_number === 'CASH-PAYMENT-DUE' || r.status === 'PENDING_CASH';
+              fetchedAll.push({
+                id: String(r.id),
+                member_name: r.member_name || r.full_name || 'Member',
+                reg_id: r.registration_id || 'N/A',
+                plan: r.plan_name || 'Membership Plan',
+                amount: parseFloat(r.amount) || 0,
+                utr_number: r.utr_number || (isCash ? 'CASH-PAYMENT-DUE' : 'Not Provided'),
+                method: isCash ? 'CASH' : 'UPI',
+                proof_note: r.proof_note || '',
+                submitted_at: r.submitted_at || r.created_at,
+                status: r.status || 'PENDING'
+              });
+            });
+          }
+        }
+        if (fetchedAll.length > 0) {
+          baseList = [...baseList, ...fetchedAll];
         }
       } catch (err) {
         // Backend offline — use local list
@@ -173,16 +209,59 @@ export default function PaymentsView() {
       setUtrRequests(mergeOverrides(deduped, overrides));
     }
     loadRequests();
+
+    // Real-time SSE stream for instant payment request notifications
+    const unsubscribe = subscribeCloudStream((msg) => {
+      if (msg.event === 'NEW_REGISTRATION' && msg.data) {
+        const r = msg.data;
+        const isCash = r.payment_method === 'CASH';
+        const newReq = {
+          id: 'reg_pay_' + r.registration_id,
+          member_name: r.full_name || 'Member',
+          reg_id: r.registration_id || 'N/A',
+          plan: r.plan_name || 'Membership Plan',
+          amount: parseFloat(r.amount) || 0,
+          utr_number: r.utr_number || (isCash ? 'CASH-PAYMENT-DUE' : 'Not Provided'),
+          method: isCash ? 'CASH' : 'UPI',
+          proof_note: r.proof_note || '',
+          submitted_at: r.created_at || new Date().toISOString(),
+          status: isCash ? 'PENDING_CASH' : 'PENDING'
+        };
+        setUtrRequests(prev => {
+          if (prev.some(item => item.id === newReq.id || item.reg_id === newReq.reg_id)) return prev;
+          const updated = [newReq, ...prev];
+          try {
+            const stored = JSON.parse(localStorage.getItem('ef_submitted_utr_requests') || '[]');
+            localStorage.setItem('ef_submitted_utr_requests', JSON.stringify([newReq, ...stored]));
+          } catch (e) {}
+          return updated;
+        });
+        showToast(`💰 New ${isCash ? 'Cash Payment Due' : 'UPI Payment'} from ${r.full_name}!`);
+      }
+    });
+
+    const pollInterval = setInterval(loadRequests, 10000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, []);
 
-  // Verify a UTR payment — marks membership ACTIVE
+  // Verify a UTR or Cash payment — marks membership ACTIVE
   const handleVerify = async (requestId) => {
     setProcessingId(requestId);
     const req = utrRequests.find(r => r.id === requestId);
+    const isCashReq = req?.method === 'CASH' || req?.status === 'PENDING_CASH' || req?.utr_number === 'CASH-PAYMENT-DUE';
 
     // Persist locally first — won't revert on tab switch or re-fetch
     applyLocalOverride(requestId, 'VERIFIED');
-    showToast(`✅ UTR verified for ${req?.member_name || 'Member'}! Membership activated.`, 'success');
+    showToast(
+      isCashReq
+        ? `✅ Cash collected from ${req?.member_name || 'Member'}! Digital Pass activated.`
+        : `✅ UTR verified for ${req?.member_name || 'Member'}! Membership activated.`,
+      'success'
+    );
 
     try {
       const stored = JSON.parse(localStorage.getItem('ef_submitted_utr_requests') || '[]');
@@ -196,6 +275,19 @@ export default function PaymentsView() {
           : m
       );
       localStorage.setItem('ef_custom_members', JSON.stringify(updatedMembers));
+
+      // Broadcast instant unlock event for QR registration screens & portals
+      localStorage.setItem('ef_payment_verified_event', JSON.stringify({
+        reg_id: req?.reg_id,
+        member_name: req?.member_name,
+        timestamp: Date.now()
+      }));
+
+      // Broadcast to cloud sync (worldwide to member's phone)
+      publishCloudEvent('PAYMENT_VERIFIED', {
+        reg_id: req?.reg_id,
+        member_name: req?.member_name
+      }).catch(() => {});
     } catch (e) {}
 
     try {
@@ -206,6 +298,7 @@ export default function PaymentsView() {
       setProcessingId(null);
     }
   };
+
 
   // Reject a UTR payment
   const handleReject = async () => {

@@ -57,6 +57,14 @@ const MODULE_GROUPS = [
         bg: 'rgba(245, 158, 11, 0.15)',
       },
       {
+        id: 'complaints',
+        title: 'Complaints & Support',
+        desc: 'View & manage support requests from the Universal QR',
+        icon: PhoneCall,
+        color: '#38BDF8',
+        bg: 'rgba(56, 189, 248, 0.15)',
+      },
+      {
         id: 'broadcast',
         title: 'Push & Offers',
         desc: 'Broadcast SMS, WhatsApp & app announcements',
@@ -95,8 +103,8 @@ const MODULE_GROUPS = [
       },
       {
         id: 'settings',
-        title: 'Gym Settings & Registration QR',
-        desc: 'Gym profile info, registration standee & password security',
+        title: 'Gym Settings & Universal QR',
+        desc: 'Gym profile info, universal entrance QR standee & password security',
         icon: Settings,
         color: '#F59E0B',
         bg: 'rgba(245, 158, 11, 0.15)',

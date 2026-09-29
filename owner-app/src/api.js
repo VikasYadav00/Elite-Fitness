@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './urlConfig';
 
 // Detect whether running inside Capacitor APK on mobile
 export const isCapacitor = () => {
@@ -9,22 +10,12 @@ export const isCapacitor = () => {
   );
 };
 
-export const getApiBaseUrl = () => {
-  const customUrl = localStorage.getItem('elite_fitness_api_url');
-  if (customUrl) return customUrl;
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  // If in Android APK via Capacitor, default to host machine LAN IP
-  if (isCapacitor()) {
-    return 'http://192.168.1.49:5000/api';
-  }
-  // Otherwise browser default
-  return 'http://localhost:5000/api';
-};
+export { getApiBaseUrl };
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
-  timeout: 3000, // Fast timeout — falls back to offline instantly
+  timeout: 10000,
 });
 
 api.interceptors.request.use((config) => {
@@ -35,5 +26,19 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let friendlyMessage = 'Unable to complete request. Please try again.';
+    if (!error.response) {
+      friendlyMessage = 'Cannot connect to backend server. Please verify backend is running.';
+    } else if (error.response.data && error.response.data.message) {
+      friendlyMessage = error.response.data.message;
+    }
+    error.userMessage = friendlyMessage;
+    return Promise.reject(error);
+  }
+);
 
 export default api;

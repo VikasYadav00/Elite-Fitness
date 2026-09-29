@@ -25,7 +25,7 @@ const RATING_LABELS = {
   5: { text: 'Outstanding! Best Gym in Lucknow', emoji: '🤩', color: '#F59E0B' }
 };
 
-export default function FeedbackPortal() {
+export default function FeedbackPortal({ onNavigateToRegister, onBack }) {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [cleanlinessRating, setCleanlinessRating] = useState(5);
@@ -67,16 +67,13 @@ export default function FeedbackPortal() {
       created_at: new Date().toISOString()
     };
 
-    // 1. Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS)
-    try {
-      await publishCloudEvent('FEEDBACK_SUBMITTED', feedbackItem);
-    } catch (_) {}
+    // 1. Publish to cloud sync (works globally on 4G/5G/Wi-Fi over HTTPS worldwide)
+    publishCloudEvent('FEEDBACK_SUBMITTED', feedbackItem).catch(() => {});
 
-    // 2. Also attempt local backend API
+    // 2. Also attempt local backend API or local storage
     try {
       await api.post('/feedback', payload);
-    } catch (err) {
-      // Local fallback
+    } catch (_) {
       try {
         const stored = JSON.parse(localStorage.getItem('ef_feedbacks_data') || '[]');
         localStorage.setItem('ef_feedbacks_data', JSON.stringify([feedbackItem, ...stored]));
@@ -250,6 +247,19 @@ export default function FeedbackPortal() {
           textAlign: 'center',
           boxShadow: '0 12px 32px rgba(0,0,0,0.5)'
         }}>
+          {/* Back to Universal QR button */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#94A3B8', display: 'flex', alignItems: 'center',
+                gap: '5px', fontSize: '0.78rem', marginBottom: '10px', padding: '0'
+              }}
+            >
+              ← Back to Services
+            </button>
+          )}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',

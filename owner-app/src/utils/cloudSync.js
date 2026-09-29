@@ -6,16 +6,11 @@ export const CLOUD_SYNC_TOPIC = 'https://ntfy.sh/ef-cloud-sync-yadav4479365';
 /**
  * Fetch all recent events from the cloud sync channel (e.g. past 24 hours)
  * @param {string} since - e.g. '24h', '1h', '10m', 'all'
- * @returns {Promise<Array<{ event: string, data: any, id: string, time: number }>>}
+ * @returns {Promise<Array<{ event: string, data: any, id: string, time: number, sender?: string }>>}
  */
 export async function fetchCloudEvents(since = '24h') {
   try {
-    const res = await fetch(`${CLOUD_SYNC_TOPIC}/json?poll=1&since=${since}`, {
-      headers: {
-        'Accept': 'application/x-ndjson'
-      }
-    });
-
+    const res = await fetch(`${CLOUD_SYNC_TOPIC}/json?poll=1&since=${since}`);
     if (!res.ok) return [];
 
     const text = await res.text();
@@ -50,8 +45,8 @@ export async function fetchCloudEvents(since = '24h') {
 }
 
 /**
- * Subscribe to the cloud SSE stream for instant real-time live events (0 latency)
- * @param {(event: { event: string, data: any }) => void} onEvent
+ * Subscribe to the cloud SSE stream for instant real-time live events (0ms latency)
+ * @param {(event: { event: string, data: any, sender?: string }) => void} onEvent
  * @returns {() => void} Unsubscribe function
  */
 export function subscribeCloudStream(onEvent) {
@@ -90,7 +85,7 @@ export function subscribeCloudStream(onEvent) {
 }
 
 /**
- * Publish an event to cloud sync (if Owner App needs to broadcast)
+ * Publish an event to cloud sync (if Owner App needs to broadcast, e.g., payment verified)
  */
 export async function publishCloudEvent(event, data) {
   try {

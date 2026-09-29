@@ -4,8 +4,10 @@ const https = require('https');
 const logger = require('../utils/logger');
 const { ingestCloudFeedback } = require('../controllers/feedbackController');
 const { ingestCloudAttendance } = require('../controllers/attendanceController');
+const { ingestCloudRegistration } = require('../controllers/registrationController');
+const { ingestCloudComplaint } = require('../controllers/complaintController');
 
-const SYNC_URL = 'https://ntfy.sh/ef-cloud-sync-yadav4479365/json?poll=1&since=1h';
+const SYNC_URL = 'https://ntfy.sh/ef-cloud-sync-yadav4479365/json?poll=1&since=2h';
 
 let isPolling = false;
 
@@ -43,6 +45,10 @@ async function pollCloudSync() {
               await ingestCloudFeedback(parsed.data);
             } else if (parsed.event === 'ATTENDANCE_CHECKIN') {
               await ingestCloudAttendance(parsed.data);
+            } else if (parsed.event === 'NEW_REGISTRATION') {
+              await ingestCloudRegistration(parsed.data);
+            } else if (parsed.event === 'COMPLAINT_SUBMITTED') {
+              await ingestCloudComplaint(parsed.data);
             }
           }
         }

@@ -23,3 +23,15 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+
+# Environment variables & secrets
+.env
+.env.production
+.env.local
+*.env
+
+# SQLite local data
+data/
+*.sqlite
+*.sqlite-*
+*.db

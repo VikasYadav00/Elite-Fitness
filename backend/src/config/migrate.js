@@ -515,7 +515,7 @@ const migrations = [
     payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL,
     member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
     source VARCHAR(20) DEFAULT 'QR' CHECK (source IN ('QR', 'MANUAL', 'APP')),
-    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PAYMENT_PENDING', 'COMPLETED', 'FAILED')),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PAYMENT_PENDING', 'PENDING_CASH', 'COMPLETED', 'FAILED')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
@@ -524,6 +524,24 @@ const migrations = [
   `
   CREATE INDEX IF NOT EXISTS idx_registrations_phone ON registrations(phone);
   CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations(status);
+  `,
+
+  // =============================================
+  // MIGRATION 011b - Add PENDING_CASH if constraint already exists
+  // =============================================
+  `
+  DO $$
+  BEGIN
+    BEGIN
+      ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_status_check;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    BEGIN
+      ALTER TABLE registrations ADD CONSTRAINT registrations_status_check
+        CHECK (status IN ('PENDING', 'PAYMENT_PENDING', 'PENDING_CASH', 'COMPLETED', 'FAILED'));
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+  END $$;
   `,
 
   // =============================================
@@ -599,6 +617,46 @@ const migrations = [
 
   CREATE INDEX IF NOT EXISTS idx_payment_requests_member ON payment_requests(member_id);
   CREATE INDEX IF NOT EXISTS idx_payment_requests_status ON payment_requests(status);
+  `,
+
+  // =============================================
+  // MIGRATION 016 - Feedbacks Table & Payment Request Cash Support
+  // =============================================
+  `
+  CREATE TABLE IF NOT EXISTS feedbacks (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(120),
+    phone VARCHAR(25),
+    member_status VARCHAR(50) DEFAULT 'ACTIVE_MEMBER',
+    rating INTEGER NOT NULL DEFAULT 5,
+    cleanliness_rating INTEGER DEFAULT 5,
+    equipment_rating INTEGER DEFAULT 5,
+    trainer_rating INTEGER DEFAULT 5,
+    category VARCHAR(60) DEFAULT 'GENERAL',
+    comments TEXT,
+    source VARCHAR(50) DEFAULT 'GOOGLE_LENS_QR',
+    status VARCHAR(30) DEFAULT 'NEW',
+    owner_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_feedbacks_created_at ON feedbacks(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status);
+  CREATE INDEX IF NOT EXISTS idx_feedbacks_rating ON feedbacks(rating);
+
+  DO $$
+  BEGIN
+    BEGIN
+      ALTER TABLE payment_requests DROP CONSTRAINT IF EXISTS payment_requests_status_check;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END;
+    BEGIN
+      ALTER TABLE payment_requests ADD CONSTRAINT payment_requests_status_check
+        CHECK (status IN ('PENDING', 'VERIFIED', 'REJECTED', 'PENDING_CASH'));
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
+  END;
+  $$;
   `,
 ];
 

@@ -16,6 +16,7 @@ import SettingsView from './views/SettingsView';
 import GymMediaMapView from './views/GymMediaMapView';
 import PaymentQRView from './views/PaymentQRView';
 import FeedbackReviewsView from './views/FeedbackReviewsView';
+import ComplaintsView from './views/ComplaintsView';
 import LoginView from './views/LoginView';
 
 export default function App() {
@@ -97,6 +98,7 @@ export default function App() {
         {activeTab === 'workouts' && <WorkoutsDietsView />}
         {activeTab === 'leads' && <LeadsView />}
         {activeTab === 'feedback' && <FeedbackReviewsView />}
+        {activeTab === 'complaints' && <ComplaintsView />}
         {activeTab === 'broadcast' && <BroadcastView />}
         {activeTab === 'reports' && <ReportsView />}
         {activeTab === 'payment-qr' && <PaymentQRView />}

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Search, UserPlus, Filter, ShieldCheck, Snowflake, CheckCircle,
   AlertCircle, XCircle, ChevronDown, Phone, Mail, Calendar,
-  CreditCard, Award, X, Sparkles, QrCode, Check, Trash2, ArrowRight, ArrowLeft
+  CreditCard, Award, X, Sparkles, QrCode, Check, Trash2, ArrowRight, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import api from '../api';
+import { fetchCloudEvents, subscribeCloudStream, publishCloudEvent } from '../utils/cloudSync';
 
 const INITIAL_MEMBERS = [
   {
@@ -178,36 +179,154 @@ export default function MembersView({ setActiveTab }) {
     loadQr();
   }, []);
 
-  // Sync members from backend if available
-  useEffect(() => {
-    async function loadMembers() {
-      try {
-        const res = await api.get('/members');
-        if (res.data?.success && res.data.data?.members && res.data.data.members.length > 0) {
-          const apiMembers = res.data.data.members.map(m => ({
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Sync members and registrations from backend
+  const loadMembers = async () => {
+    setRefreshing(true);
+    try {
+      const [mRes, rRes] = await Promise.allSettled([
+        api.get('/members?limit=100'),
+        api.get('/registrations?limit=100')
+      ]);
+
+      const backendMembers = [];
+      if (mRes.status === 'fulfilled' && mRes.value.data?.data?.members) {
+        mRes.value.data.data.members.forEach(m => {
+          const isInactive = m.status === 'INACTIVE' || m.payment_status === 'DUE' || m.payment_status === 'PENDING';
+          backendMembers.push({
             id: String(m.id),
             registration_id: m.registration_id || `EF2609${m.id.toString().padStart(4, '0')}`,
             full_name: m.full_name || 'Member',
             phone: m.phone || 'N/A',
             email: m.email || '',
-            status: m.status || 'ACTIVE',
+            status: isInactive ? 'INACTIVE' : (m.status || 'ACTIVE'),
             plan_name: m.plan_name || 'Quarterly Beast Mode',
             end_date: m.end_date ? m.end_date.split('T')[0] : '2026-12-31',
-            payment_status: m.payment_status || 'PAID',
+            payment_status: m.payment_status || (isInactive ? 'DUE' : 'PAID'),
             amount_paid: m.amount_paid ? `₹${m.amount_paid}` : '₹2,699'
-          }));
-          const stored = JSON.parse(localStorage.getItem('ef_custom_members') || '[]');
-          const map = new Map();
-          [...stored, ...apiMembers].forEach(m => {
-            if (!map.has(m.id) && !map.has(m.registration_id)) {
-              map.set(m.registration_id || m.id, m);
-            }
           });
-          setMembers(Array.from(map.values()));
+        });
+      }
+
+      if (rRes.status === 'fulfilled' && rRes.value.data?.data) {
+        const regs = Array.isArray(rRes.value.data.data) ? rRes.value.data.data : [];
+        regs.forEach(r => {
+          const isPaid = (r.payment_status === 'SUCCESS' || r.payment_status === 'PAID') &&
+                         r.payment_status !== 'DUE' &&
+                         r.status !== 'PENDING_CASH';
+          backendMembers.push({
+            id: String(r.id || r.registration_id),
+            registration_id: r.registration_id,
+            full_name: r.full_name,
+            phone: r.phone || 'N/A',
+            email: r.email || '',
+            status: isPaid ? 'ACTIVE' : 'INACTIVE',
+            plan_name: r.plan_name || 'Membership Pass',
+            end_date: isPaid ? 'Active' : 'Payment Due at Desk',
+            payment_status: isPaid ? 'PAID' : (r.payment_status || (r.payment_method === 'CASH' ? 'DUE' : 'PENDING')),
+            amount_paid: r.amount ? `₹${r.amount}` : '₹2,500'
+          });
+        });
+      }
+
+      // Ingest cloud registrations submitted from GitHub Pages worldwide
+      let cloudRegistrations = [];
+      try {
+        const cloudEvents = await fetchCloudEvents('24h');
+        cloudRegistrations = cloudEvents
+          .filter(e => e.event === 'NEW_REGISTRATION' && e.data)
+          .map(e => e.data);
+      } catch (_) {}
+
+      const stored = JSON.parse(localStorage.getItem('ef_custom_members') || '[]');
+      const map = new Map();
+      stored.forEach(m => map.set(m.registration_id || m.id, m));
+
+      // Add cloud registrations (strict INACTIVE until owner approval)
+      cloudRegistrations.forEach(r => {
+        const key = r.registration_id;
+        if (!map.has(key)) {
+          map.set(key, {
+            id: String(r.registration_id || Date.now()),
+            registration_id: r.registration_id,
+            full_name: r.full_name || 'Member',
+            phone: r.phone || 'N/A',
+            email: r.email || '',
+            status: 'INACTIVE',
+            plan_name: r.plan_name || 'Membership Plan',
+            end_date: r.end_date || 'Active',
+            payment_status: r.payment_status || (r.payment_method === 'CASH' ? 'DUE' : 'PENDING'),
+            amount_paid: `₹${r.amount || 0}`
+          });
         }
-      } catch (err) {}
+      });
+
+      backendMembers.forEach(m => {
+        const key = m.registration_id || m.id;
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, m);
+        } else {
+          // If payment is pending/due in backend, keep strict inactive status
+          if (m.payment_status === 'DUE' || m.status === 'INACTIVE') {
+            map.set(key, { ...existing, status: 'INACTIVE', payment_status: m.payment_status || 'DUE' });
+          }
+        }
+      });
+      [...INITIAL_MEMBERS].forEach(m => {
+        if (!map.has(m.registration_id) && !map.has(m.id)) {
+          map.set(m.registration_id || m.id, m);
+        }
+      });
+      const finalMembers = Array.from(map.values());
+      try { localStorage.setItem('ef_custom_members', JSON.stringify(finalMembers)); } catch(e){}
+      setMembers(finalMembers);
+    } catch (err) {
+      console.warn('loadMembers note:', err.message);
+    } finally {
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
     loadMembers();
+
+    // Real-time SSE stream for instant 0ms notification when a new member registers on GitHub Pages
+    const unsubscribe = subscribeCloudStream((msg) => {
+      if (msg.event === 'NEW_REGISTRATION' && msg.data) {
+        const d = msg.data;
+        const isCash = d.payment_method === 'CASH';
+        const newMemberItem = {
+          id: String(d.registration_id || Date.now()),
+          registration_id: d.registration_id,
+          full_name: d.full_name || 'Member',
+          phone: d.phone || 'N/A',
+          email: d.email || '',
+          status: 'INACTIVE', // Strictly INACTIVE until owner verifies
+          plan_name: d.plan_name || 'Membership Plan',
+          end_date: d.end_date || 'Payment Pending',
+          payment_status: isCash ? 'DUE' : 'PENDING',
+          amount_paid: `₹${d.amount || 0}`
+        };
+
+        setMembers(prev => {
+          if (prev.some(m => m.registration_id === newMemberItem.registration_id)) return prev;
+          const updated = [newMemberItem, ...prev];
+          try { localStorage.setItem('ef_custom_members', JSON.stringify(updated)); } catch(e){}
+          return updated;
+        });
+
+        showToast(`🎉 New Registration: ${d.full_name} (${d.registration_id}) — ${isCash ? 'Cash Due at Counter' : 'Pending UTR'}!`);
+      }
+    });
+
+    const pollInterval = setInterval(() => loadMembers(), 10000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
   }, []);
 
   const showToast = (msg) => {
@@ -217,17 +336,25 @@ export default function MembersView({ setActiveTab }) {
 
   // Instant Database Status Override Handler
   const handleUpdateStatus = async (memberId, newStatus) => {
-    const target = members.find(m => m.id === memberId);
+    const target = members.find(m => m.id === memberId || m.registration_id === memberId);
     if (!target) return;
 
     // 1. Optimistic state update
-    const updated = members.map(m => m.id === memberId ? { ...m, status: newStatus } : m);
+    const updated = members.map(m => (m.id === memberId || m.registration_id === memberId) ? { ...m, status: newStatus, payment_status: newStatus === 'ACTIVE' ? 'PAID' : m.payment_status } : m);
     setMembers(updated);
 
     // 2. Persist to localStorage
     try {
       localStorage.setItem('ef_custom_members', JSON.stringify(updated));
     } catch (e) {}
+
+    // Broadcast PAYMENT_VERIFIED event to customer's phone over cloud sync
+    if (newStatus === 'ACTIVE') {
+      publishCloudEvent('PAYMENT_VERIFIED', {
+        reg_id: target.registration_id,
+        member_name: target.full_name
+      }).catch(() => {});
+    }
 
     showToast(`Status updated to ${newStatus} for ${target.full_name}!`);
 
@@ -407,9 +534,19 @@ export default function MembersView({ setActiveTab }) {
             </p>
           </div>
 
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-            <UserPlus size={18} /> Add New Member
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              className="btn-secondary"
+              onClick={loadMembers}
+              disabled={refreshing}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 16px', fontSize: '0.85rem' }}
+            >
+              <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Syncing...' : 'Sync Members'}
+            </button>
+            <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+              <UserPlus size={18} /> Add New Member
+            </button>
+          </div>
         </div>
       </div>
 
@@ -663,8 +800,34 @@ export default function MembersView({ setActiveTab }) {
                     setMembers(updated);
                     try {
                       localStorage.setItem('ef_custom_members', JSON.stringify(updated));
+
+                      // Update UTR & Cash requests list
+                      const storedUtrs = JSON.parse(localStorage.getItem('ef_submitted_utr_requests') || '[]');
+                      const updatedUtrs = storedUtrs.map(u =>
+                        (u.reg_id === m.registration_id || u.member_name === m.full_name)
+                          ? { ...u, status: 'VERIFIED' }
+                          : u
+                      );
+                      localStorage.setItem('ef_submitted_utr_requests', JSON.stringify(updatedUtrs));
+
+                      // Broadcast live instant pass unlock event for customer registration portal
+                      localStorage.setItem('ef_payment_verified_event', JSON.stringify({
+                        reg_id: m.registration_id,
+                        member_name: m.full_name,
+                        timestamp: Date.now()
+                      }));
                     } catch (_) {}
-                    showToast(`✅ Payment received! ${m.full_name}'s membership pass is now ACTIVE.`);
+
+                    // Attempt background sync with backend payment-requests API
+                    api.get('/payment-requests?status=PENDING,PENDING_CASH').then(res => {
+                      const list = res.data?.data || [];
+                      const match = list.find(r => r.registration_id === m.registration_id || String(r.member_id) === String(m.id));
+                      if (match) {
+                        api.post(`/payment-requests/${match.id}/verify`).catch(() => {});
+                      }
+                    }).catch(() => {});
+
+                    showToast(`✅ Cash collected! ${m.full_name}'s digital pass is now ACTIVE.`);
                   }}
                   style={{
                     padding: '10px 14px',
