@@ -3,29 +3,55 @@ export const DEFAULT_PRODUCTION_FRONTEND_URL = 'https://vikasyadav00.github.io/E
 export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend.onrender.com/api';
 
 /**
- * Returns the base URL of the deployed QR web portal
+ * Returns the clean base URL of the deployed QR web portal
  */
 export function getFrontendBaseUrl() {
   if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('ef_frontend_url') || localStorage.getItem('ef_registration_url');
+    const saved = localStorage.getItem('ef_frontend_url');
     if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1') && !saved.includes('192.168.')) {
-      // If it ends with /register or trailing slash, strip it for the base
-      return saved.replace(/\/register\/?$/, '').replace(/\/feedback\/?$/, '').replace(/\/+$/, '');
+      return saved
+        .split('?')[0]
+        .split('#')[0]
+        .replace(/\/register\/?$/, '')
+        .replace(/\/feedback\/?$/, '')
+        .replace(/\/checkin\/?$/, '')
+        .replace(/\/attendance\/?$/, '')
+        .replace(/\/complaint\/?$/, '')
+        .replace(/\/qr\/?$/, '')
+        .replace(/\/+$/, '');
     }
   }
-  return (import.meta.env.VITE_FRONTEND_URL || DEFAULT_PRODUCTION_FRONTEND_URL).replace(/\/+$/, '');
+  return (import.meta.env.VITE_FRONTEND_URL || DEFAULT_PRODUCTION_FRONTEND_URL)
+    .split('?')[0]
+    .split('#')[0]
+    .replace(/\/register\/?$/, '')
+    .replace(/\/feedback\/?$/, '')
+    .replace(/\/checkin\/?$/, '')
+    .replace(/\/qr\/?$/, '')
+    .replace(/\/+$/, '');
 }
 
 /**
  * Universal QR URL — the ONE permanent public QR for the gym entrance
- * Points to /qr (service selection landing page)
+ * Always points strictly to /qr (service selection landing page)
  */
 export function getPublicUniversalQrUrl() {
+  const base = getFrontendBaseUrl();
   const custom = localStorage.getItem('ef_universal_qr_url');
   if (custom && !custom.includes('localhost') && !custom.includes('127.0.0.1') && !custom.includes('192.168.')) {
-    return custom;
+    // Sanitize in case it was stored with /register or query parameters
+    const clean = custom
+      .split('?')[0]
+      .split('#')[0]
+      .replace(/\/register\/?$/, '')
+      .replace(/\/feedback\/?$/, '')
+      .replace(/\/checkin\/?$/, '')
+      .replace(/\/attendance\/?$/, '')
+      .replace(/\/complaint\/?$/, '')
+      .replace(/\/+$/, '');
+    return clean.endsWith('/qr') ? clean : `${clean}/qr`;
   }
-  return `${getFrontendBaseUrl()}/qr`;
+  return `${base}/qr`;
 }
 
 /**

@@ -49,8 +49,12 @@ async function updateSettings(req, res) {
 // GET /api/settings/universal-qr - Generate the ONE Universal QR for the gym entrance
 async function getUniversalQR(req, res) {
   // Universal QR always points to /qr (the service selection page)
-  const frontendBase = process.env.QR_WEB_URL || process.env.GYM_REGISTRATION_URL?.replace(/\/register\/?$/, '') || 'http://localhost:3000';
-  const universalUrl = `${frontendBase.replace(/\/+$/, '')}/qr`;
+  const defaultUrl = 'https://vikasyadav00.github.io/Elite-Fitness';
+  const frontendBase = (process.env.QR_WEB_URL || process.env.GYM_REGISTRATION_URL || defaultUrl)
+    .split('?')[0]
+    .replace(/\/register\/?$/, '')
+    .replace(/\/+$/, '');
+  const universalUrl = `${frontendBase}/qr`;
 
   try {
     const qrDataUrl = await QRCode.toDataURL(universalUrl, {

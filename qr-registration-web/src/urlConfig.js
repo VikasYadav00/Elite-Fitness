@@ -10,7 +10,16 @@ export function getFrontendBaseUrl() {
     // 1. Saved frontend URL in local storage
     const saved = localStorage.getItem('ef_frontend_url');
     if (saved && !saved.includes('localhost') && !saved.includes('127.0.0.1')) {
-      return saved.replace(/\/+$/, '');
+      return saved
+        .split('?')[0]
+        .split('#')[0]
+        .replace(/\/register\/?$/, '')
+        .replace(/\/feedback\/?$/, '')
+        .replace(/\/checkin\/?$/, '')
+        .replace(/\/attendance\/?$/, '')
+        .replace(/\/complaint\/?$/, '')
+        .replace(/\/qr\/?$/, '')
+        .replace(/\/+$/, '');
     }
 
     // 2. Running on GitHub Pages

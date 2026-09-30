@@ -271,6 +271,18 @@ export default function SettingsView() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Guarantee Universal QR URL strictly points to /qr (service landing page)
+  useEffect(() => {
+    const cleanUniversal = getPublicUniversalQrUrl();
+    if (universalQrUrl !== cleanUniversal) {
+      setUniversalQrUrl(cleanUniversal);
+    }
+    const storedUniversal = localStorage.getItem('ef_universal_qr_url');
+    if (storedUniversal && (storedUniversal.includes('/register') || storedUniversal.includes('localhost') || storedUniversal.includes('127.0.0.1'))) {
+      localStorage.setItem('ef_universal_qr_url', cleanUniversal);
+    }
+  }, []);
+
   // Live Backend Health Check
   const checkBackendHealth = async () => {
     setApiHealth({ status: 'checking', message: 'Pinging backend health endpoint...', latency: null });
@@ -725,7 +737,8 @@ export default function SettingsView() {
                 style={{ width: '100%', padding: '8px', fontSize: '0.8rem', marginBottom: '4px' }}
                 onClick={() => {
                   if (customUniversalUrl) {
-                    const cleanUrl = customUniversalUrl.trim();
+                    const cleanBase = customUniversalUrl.trim().split('?')[0].replace(/\/register\/?$/, '').replace(/\/feedback\/?$/, '').replace(/\/checkin\/?$/, '').replace(/\/+$/, '');
+                    const cleanUrl = cleanBase.endsWith('/qr') ? cleanBase : `${cleanBase}/qr`;
                     setUniversalQrUrl(cleanUrl);
                     localStorage.setItem('ef_universal_qr_url', cleanUrl);
                     setShowUrlEdit(false);

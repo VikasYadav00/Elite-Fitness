@@ -19,6 +19,16 @@ const STEPS = [
   { title: 'Digital Pass' },
 ];
 
+// Helper: extract base repo prefix (e.g. /Elite-Fitness or empty)
+function getBaseRoutePath() {
+  if (typeof window === 'undefined') return '';
+  const path = window.location.pathname;
+  if (path.toLowerCase().startsWith('/elite-fitness')) {
+    return '/Elite-Fitness';
+  }
+  return '';
+}
+
 // Route detection: reads pathname/hash/search to resolve current view
 function detectCurrentRoute() {
   if (typeof window === 'undefined') return 'qr';
@@ -26,30 +36,62 @@ function detectCurrentRoute() {
   const search = window.location.search.toLowerCase();
   const hash = window.location.hash.toLowerCase();
 
-  // Explicit sub-routes
-  if (path.includes('/register') || search.includes('register') || hash.includes('/register')) {
-    return 'register';
-  }
-  if (search.includes('feedback') || hash.includes('feedback') || path.includes('/feedback')) {
-    return 'feedback';
-  }
+  // 1. Universal QR Landing Page - Highest Priority Check
+  // Matches /qr, /qr/, ?qr, ?qr=1, &qr=1, #qr, ?p=/qr, ?p=%2fqr
   if (
-    search.includes('checkin') || hash.includes('checkin') || path.includes('/checkin') ||
-    search.includes('attendance') || hash.includes('attendance') || path.includes('/attendance')
+    path.endsWith('/qr') || path.includes('/qr/') || path.endsWith('/qr.html') ||
+    search.includes('qr=') || search.includes('?qr') || search.includes('&qr') ||
+    hash.includes('qr') ||
+    search.includes('p=%2fqr') || search.includes('p=/qr')
+  ) {
+    return 'qr';
+  }
+
+  // 2. Attendance / Check-in Portal
+  if (
+    path.endsWith('/checkin') || path.includes('/checkin/') ||
+    path.endsWith('/attendance') || path.includes('/attendance/') ||
+    search.includes('checkin') || hash.includes('checkin') ||
+    search.includes('attendance') || hash.includes('attendance')
   ) {
     return 'checkin';
   }
-  if (search.includes('complaint') || hash.includes('complaint') || path.includes('/complaint')) {
+
+  // 3. Feedback & Review Portal
+  if (
+    path.endsWith('/feedback') || path.includes('/feedback/') ||
+    search.includes('feedback') || hash.includes('feedback')
+  ) {
+    return 'feedback';
+  }
+
+  // 4. Complaint & Support Portal
+  if (
+    path.endsWith('/complaint') || path.includes('/complaint/') ||
+    search.includes('complaint') || hash.includes('complaint')
+  ) {
     return 'complaint';
   }
-  // Default to Universal QR landing page for /qr or root /
+
+  // 5. New Registration Stepper
+  // ONLY triggered if explicitly targeted with /register, ?register=1, etc.
+  if (
+    path.endsWith('/register') || path.includes('/register/') ||
+    search.includes('register=1') || search.includes('register=true') ||
+    hash.includes('register') ||
+    search.includes('p=%2fregister') || search.includes('p=/register')
+  ) {
+    return 'register';
+  }
+
+  // 6. DEFAULT FALLBACK: ALWAYS open Universal QR Landing Page
+  // Ensures that root ('/', '/Elite-Fitness/', '/Elite-Fitness') or any general QR scan
+  // opens the 4-service selection portal, NEVER directly jumping into registration!
   return 'qr';
 }
 
 export default function App() {
   const [route, setRoute] = useState(detectCurrentRoute);
-  // 'from' tracks which page the user came from (for back navigation)
-  const [from, setFrom] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -71,7 +113,6 @@ export default function App() {
   useEffect(() => {
     const handleLocationChange = () => {
       setRoute(detectCurrentRoute());
-      setFrom(null);
     };
     window.addEventListener('popstate', handleLocationChange);
     window.addEventListener('hashchange', handleLocationChange);
@@ -83,16 +124,25 @@ export default function App() {
 
   // Navigate from Universal Portal to a specific service
   const handleNavigateToService = (serviceId) => {
-    setFrom('qr'); // remember we came from QR
     setRoute(serviceId);
-    // Reset registration step when navigating fresh
     if (serviceId === 'register') setCurrentStep(1);
+
+    // Update browser URL history for clean back-button navigation
+    try {
+      const base = getBaseRoutePath();
+      const newPath = `${base}/${serviceId}`;
+      window.history.pushState({ service: serviceId }, '', newPath);
+    } catch (_) {}
   };
 
   // Navigate back to Universal Portal
   const handleBackToQr = () => {
     setRoute('qr');
-    setFrom(null);
+    try {
+      const base = getBaseRoutePath();
+      const qrPath = `${base}/qr`;
+      window.history.pushState({ service: 'qr' }, '', qrPath);
+    } catch (_) {}
   };
 
   // ─── Route: Universal QR Landing Page ────────────────────────────────────────
@@ -104,8 +154,8 @@ export default function App() {
   if (route === 'feedback') {
     return (
       <FeedbackPortal
-        onNavigateToRegister={() => from === 'qr' ? handleBackToQr() : setRoute('register')}
-        onBack={from === 'qr' ? handleBackToQr : null}
+        onNavigateToRegister={() => handleNavigateToService('register')}
+        onBack={handleBackToQr}
       />
     );
   }
@@ -114,8 +164,8 @@ export default function App() {
   if (route === 'checkin') {
     return (
       <CheckinPortal
-        onNavigateToRegister={() => from === 'qr' ? handleBackToQr() : setRoute('register')}
-        onBack={from === 'qr' ? handleBackToQr : null}
+        onNavigateToRegister={() => handleNavigateToService('register')}
+        onBack={handleBackToQr}
       />
     );
   }
@@ -124,7 +174,7 @@ export default function App() {
   if (route === 'complaint') {
     return (
       <ComplaintPortal
-        onBack={from === 'qr' ? handleBackToQr : null}
+        onBack={handleBackToQr}
       />
     );
   }
@@ -150,26 +200,26 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', padding: '20px 16px 60px 16px' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        {/* Back to QR Portal link (only if came from QR) */}
-        {from === 'qr' && (
-          <button
-            onClick={handleBackToQr}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#94A3B8',
-              fontSize: '0.82rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              marginBottom: '10px',
-              padding: '0'
-            }}
-          >
-            ← Back to Services
-          </button>
-        )}
+        {/* Back to Universal Service Selection Page */}
+        <button
+          id="btn-back-to-services"
+          onClick={handleBackToQr}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#F59E0B',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: '14px',
+            padding: '4px 0'
+          }}
+        >
+          ← Back to All Services
+        </button>
 
         <Header />
 

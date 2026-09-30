@@ -142,8 +142,8 @@ export default function UniversalPortal({ onNavigate }) {
         }}>
           Welcome to Elite Fitness
         </h1>
-        <p style={{ color: '#94A3B8', fontSize: '0.88rem', margin: '0 0 16px', lineHeight: 1.5 }}>
-          How can we help you today?
+        <p style={{ color: '#F59E0B', fontSize: '0.95rem', fontWeight: 600, margin: '0 0 16px', lineHeight: 1.5 }}>
+          Please select a service
         </p>
 
         {/* Live time + date */}
