@@ -85,8 +85,12 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Allow Cloud deployment domains (*.onrender.com, *.loca.lt)
-    if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin) || /^https:\/\/[a-zA-Z0-9-]+\.loca\.lt$/.test(origin)) {
+    // Allow Cloud deployment domains (*.onrender.com, *.loca.lt, *.trycloudflare.com)
+    if (
+      /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin) ||
+      /^https:\/\/[a-zA-Z0-9-]+\.loca\.lt$/.test(origin) ||
+      /^https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com$/.test(origin)
+    ) {
       return callback(null, true);
     }
 

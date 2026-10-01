@@ -977,19 +977,20 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => {
-                const url = 'https://elite-fitness-api.loca.lt/api';
+                const url = 'https://count-cotton-firmware-castle.trycloudflare.com/api';
                 localStorage.setItem('elite_fitness_api_url', url);
                 checkBackendHealth(url);
-                showToast('Switched to Live Public HTTPS Tunnel API');
+                showToast('✅ Switched to Live Public Cloudflare HTTPS API');
               }}
               style={{
-                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
-                background: apiBaseUrl.includes('loca.lt') ? '#0284C7' : '#FFFFFF',
-                color: apiBaseUrl.includes('loca.lt') ? '#FFFFFF' : '#0284C7',
-                border: '1px solid #BAE6FD', cursor: 'pointer'
+                fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
+                background: apiBaseUrl.includes('trycloudflare.com') ? '#0284C7' : '#FFFFFF',
+                color: apiBaseUrl.includes('trycloudflare.com') ? '#FFFFFF' : '#0284C7',
+                border: '1.5px solid #0284C7', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              🌐 Live Public Tunnel
+              🌐 Live Public HTTPS (Global)
             </button>
 
             <button
@@ -1001,7 +1002,7 @@ export default function SettingsView() {
                 showToast('Switched to Render Cloud Backend API');
               }}
               style={{
-                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
+                fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
                 background: apiBaseUrl.includes('onrender.com') ? '#0284C7' : '#FFFFFF',
                 color: apiBaseUrl.includes('onrender.com') ? '#FFFFFF' : '#0284C7',
                 border: '1px solid #BAE6FD', cursor: 'pointer'
@@ -1019,7 +1020,7 @@ export default function SettingsView() {
                 showToast('Switched to Local Dev API');
               }}
               style={{
-                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
+                fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
                 background: apiBaseUrl.includes('localhost') ? '#6B7280' : '#FFFFFF',
                 color: apiBaseUrl.includes('localhost') ? '#FFFFFF' : '#6B7280',
                 border: '1px solid #D1D5DB', cursor: 'pointer'

@@ -1,6 +1,7 @@
 // Elite Fitness - Centralized Public URL & QR Configuration for Owner App
 export const DEFAULT_PRODUCTION_FRONTEND_URL = 'https://vikasyadav00.github.io/Elite-Fitness';
-export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend.onrender.com/api';
+export const DEFAULT_PRODUCTION_API_URL = 'https://count-cotton-firmware-castle.trycloudflare.com/api';
+export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend.onrender.com/api';
 
 /**
  * Returns the clean base URL of the deployed QR web portal

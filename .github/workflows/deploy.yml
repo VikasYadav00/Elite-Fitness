@@ -34,8 +34,8 @@ jobs:
       - name: Build Web Application
         env:
           VITE_BASE_PATH: /Elite-Fitness/
-          VITE_API_URL: https://elite-fitness-backend.onrender.com/api
-          VITE_API_BASE_URL: https://elite-fitness-backend.onrender.com/api
+          VITE_API_URL: https://count-cotton-firmware-castle.trycloudflare.com/api
+          VITE_API_BASE_URL: https://count-cotton-firmware-castle.trycloudflare.com/api
         run: |
           cd qr-registration-web
           npm run build
