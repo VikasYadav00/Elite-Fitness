@@ -9,7 +9,7 @@ export const isCapacitor = () => {
   );
 };
 
-export const DEFAULT_PRODUCTION_API_URL = 'https://count-cotton-firmware-castle.trycloudflare.com/api';
+export const DEFAULT_PRODUCTION_API_URL = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
 export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend.onrender.com/api';
 
 export const getApiBaseUrl = () => {

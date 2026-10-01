@@ -977,7 +977,7 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => {
-                const url = 'https://count-cotton-firmware-castle.trycloudflare.com/api';
+                const url = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
                 localStorage.setItem('elite_fitness_api_url', url);
                 checkBackendHealth(url);
                 showToast('✅ Switched to Live Public Cloudflare HTTPS API');
