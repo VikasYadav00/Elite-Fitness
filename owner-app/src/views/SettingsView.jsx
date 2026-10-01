@@ -260,6 +260,8 @@ export default function SettingsView() {
   const [attendanceQrUrl, setAttendanceQrUrl] = useState(getPublicAttendanceUrl());
   const [apiBaseUrl, setApiBaseUrl] = useState(getApiBaseUrl());
   const [apiHealth, setApiHealth] = useState({ status: 'checking', message: 'Testing backend connection...', latency: null });
+  const [customApiInput, setCustomApiInput] = useState('');
+  const [showCustomApiEdit, setShowCustomApiEdit] = useState(false);
   const [lastGeneratedTime, setLastGeneratedTime] = useState(() => new Date().toLocaleString('en-IN'));
   const [globalFrontendInput, setGlobalFrontendInput] = useState(() => getFrontendBaseUrl());
 
@@ -288,24 +290,27 @@ export default function SettingsView() {
 
   // Live Backend Health Check (Tests Public /health and /api/health)
   const checkBackendHealth = async (overrideUrl = null) => {
-    const targetUrl = (overrideUrl || getApiBaseUrl()).replace(/\/+$/, '');
+    // If the stored URL is the defunct loca.lt, purge it and use the live Cloudflare HTTPS URL
+    let target = overrideUrl || getApiBaseUrl();
+    if (target.includes('loca.lt')) {
+      localStorage.removeItem('elite_fitness_api_url');
+      target = DEFAULT_PRODUCTION_API_URL;
+    }
+    const targetUrl = target.replace(/\/+$/, '');
     setApiBaseUrl(targetUrl);
     setApiHealth({ status: 'checking', message: 'Testing backend connection over HTTPS...', latency: null });
     const start = Date.now();
 
     try {
-      // 1. Ping /health on backend origin
+      // 1. Direct fetch to /health (simple GET, avoids complex preflights)
       const rootUrl = targetUrl.replace(/\/api\/?$/, '');
       const healthUrl = `${rootUrl}/health`;
-      const res = await axios.get(healthUrl, {
-        timeout: 6000,
-        headers: { 'Bypass-Tunnel-Reminder': 'true' }
-      });
+      const res = await axios.get(healthUrl, { timeout: 7000 });
       const latency = Date.now() - start;
       if (res.data?.status === 'ok' || res.data?.success) {
         setApiHealth({
           status: 'online',
-          message: `Live & Operational (${res.data.environment || 'production'})`,
+          message: `Live & Operational (${res.data.service || 'Cloud Server'}, ${latency}ms)`,
           latency
         });
         return;
@@ -313,29 +318,32 @@ export default function SettingsView() {
     } catch (_) {}
 
     try {
-      // 2. Ping /api/health
-      const res = await axios.get(`${targetUrl}/health`, {
-        timeout: 5000,
-        headers: { 'Bypass-Tunnel-Reminder': 'true' }
-      });
+      // 2. Direct fetch to /api/health
+      const res = await axios.get(`${targetUrl}/health`, { timeout: 6000 });
       const latency = Date.now() - start;
       if (res.data?.status === 'ok' || res.data?.success) {
         setApiHealth({
           status: 'online',
-          message: 'Operational & Connected over HTTPS',
+          message: `Live & Operational (${res.data.service || 'Cloud Server'}, ${latency}ms)`,
           latency
         });
         return;
       }
     } catch (_) {}
 
-    // Fallback: try api instance
+    // 3. Fallback: try pinging /api/membership-plans or /health through api instance
     try {
-      const res = await api.get('/health', { timeout: 4000 });
+      const res = await api.get('/membership-plans', { timeout: 5000 });
       const latency = Date.now() - start;
-      setApiHealth({ status: 'online', message: 'Connected to Server', latency });
+      if (res.status === 200) {
+        setApiHealth({ status: 'online', message: `Live & Operational (${latency}ms)`, latency });
+        return;
+      }
     } catch (err) {
-      setApiHealth({ status: 'offline', message: 'Backend unreachable. Check server status or CORS.', latency: null });
+      const errorMsg = targetUrl.includes('onrender.com')
+        ? 'Render service not yet created on dashboard.render.com. Use Live Public HTTPS (Cloudflare).'
+        : 'Backend unreachable. Check server status or CORS.';
+      setApiHealth({ status: 'offline', message: errorMsg, latency: null });
     }
   };
 
@@ -990,7 +998,7 @@ export default function SettingsView() {
                 display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              🌐 Live Public HTTPS (Global)
+              🌐 Live Public HTTPS (Cloudflare) {apiBaseUrl.includes('trycloudflare.com') && '✓'}
             </button>
 
             <button
@@ -1005,10 +1013,11 @@ export default function SettingsView() {
                 fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
                 background: apiBaseUrl.includes('onrender.com') ? '#0284C7' : '#FFFFFF',
                 color: apiBaseUrl.includes('onrender.com') ? '#FFFFFF' : '#0284C7',
-                border: '1px solid #BAE6FD', cursor: 'pointer'
+                border: '1px solid #BAE6FD', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              ☁️ Render Cloud
+              ☁️ Render Cloud {apiBaseUrl.includes('onrender.com') && '✓'}
             </button>
 
             <button
@@ -1023,12 +1032,69 @@ export default function SettingsView() {
                 fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
                 background: apiBaseUrl.includes('localhost') ? '#6B7280' : '#FFFFFF',
                 color: apiBaseUrl.includes('localhost') ? '#FFFFFF' : '#6B7280',
-                border: '1px solid #D1D5DB', cursor: 'pointer'
+                border: '1px solid #D1D5DB', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              💻 Local Dev (5000)
+              💻 Local Dev (5000) {apiBaseUrl.includes('localhost') && '✓'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCustomApiInput(apiBaseUrl);
+                setShowCustomApiEdit(!showCustomApiEdit);
+              }}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
+                background: showCustomApiEdit ? '#F3F4F6' : '#FFFFFF',
+                color: '#4B5563', border: '1px dashed #9CA3AF', cursor: 'pointer'
+              }}
+            >
+              ✏️ Enter Custom URL
             </button>
           </div>
+
+          {showCustomApiEdit && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={customApiInput}
+                onChange={(e) => setCustomApiInput(e.target.value)}
+                placeholder="https://your-custom-backend.com/api"
+                style={{
+                  flex: 1, padding: '6px 12px', fontSize: '0.78rem',
+                  border: '1px solid #D1D5DB', borderRadius: '6px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (customApiInput.trim()) {
+                    localStorage.setItem('elite_fitness_api_url', customApiInput.trim());
+                    checkBackendHealth(customApiInput.trim());
+                    showToast('Applying custom backend URL...');
+                  }
+                }}
+                style={{
+                  background: '#0284C7', color: '#fff', border: 'none',
+                  borderRadius: '6px', padding: '6px 14px', fontSize: '0.74rem',
+                  fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Apply & Test
+              </button>
+            </div>
+          )}
+
+          {apiBaseUrl.includes('onrender.com') && apiHealth.status === 'offline' && (
+            <div style={{
+              marginTop: '10px', padding: '8px 12px', background: '#FFFBEB',
+              border: '1px solid #FDE68A', borderRadius: '8px', fontSize: '0.72rem', color: '#92400E'
+            }}>
+              💡 <strong>Render Service Setup:</strong> The repository already includes <code>render.yaml</code>. To activate Render, go to <a href="https://dashboard.render.com" target="_blank" rel="noreferrer" style={{ color: '#B45309', fontWeight: 700 }}>dashboard.render.com</a> &rarr; <strong>New +</strong> &rarr; <strong>Blueprint</strong> &rarr; select <strong>VikasYadav00/Elite-Fitness</strong>. In the meantime, switch to <strong>🌐 Live Public HTTPS (Cloudflare)</strong> to stay connected globally.
+            </div>
+          )}
         </div>
 
         {/* QR Validation Cards Grid */}

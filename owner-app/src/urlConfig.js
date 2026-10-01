@@ -95,7 +95,14 @@ export function getPublicAttendanceUrl() {
 export function getApiBaseUrl() {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('elite_fitness_api_url');
-    if (custom) return custom.replace(/\/+$/, '');
+    if (custom) {
+      // Automatically purge obsolete localtunnel (loca.lt) URLs that are defunct
+      if (custom.includes('loca.lt')) {
+        localStorage.removeItem('elite_fitness_api_url');
+      } else {
+        return custom.replace(/\/+$/, '');
+      }
+    }
   }
 
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;

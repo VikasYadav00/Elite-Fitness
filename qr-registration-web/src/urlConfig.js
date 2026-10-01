@@ -99,12 +99,13 @@ export function getApiBaseUrl() {
       return fromQuery.replace(/\/+$/, '');
     }
 
-    // 3. Stored backend URL from previous session (purged if localhost on production domain)
+    // 3. Stored backend URL from previous session (purged if localhost on production domain or dead loca.lt)
     const saved = localStorage.getItem('ef_backend_url');
     if (saved) {
       const isLocalhostUrl = saved.includes('localhost') || saved.includes('127.0.0.1');
-      if (window.location.hostname.includes('github.io') && isLocalhostUrl) {
-        // Automatically purge stale local dev URL when on GitHub Pages
+      const isLocaltunnel = saved.includes('loca.lt');
+      if ((window.location.hostname.includes('github.io') && isLocalhostUrl) || isLocaltunnel) {
+        // Automatically purge stale local dev or dead localtunnel URL
         localStorage.removeItem('ef_backend_url');
       } else if (!isLocalhostUrl || import.meta.env.DEV) {
         return saved.replace(/\/+$/, '');
