@@ -49,6 +49,7 @@ const configuredOrigins = [
   process.env.OWNER_APP_URL,
   'https://vikasyadav00.github.io',
   'https://vikasyadav00.github.io/Elite-Fitness',
+  'https://elite-fitness-backend-gu8q.onrender.com',
   'https://elite-fitness-backend.onrender.com',
   'https://elite-fitness-api.loca.lt',
   'http://localhost:3000',

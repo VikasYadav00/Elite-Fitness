@@ -1,7 +1,7 @@
 // Elite Fitness - Centralized Public URL & API Configuration
 export const DEFAULT_PRODUCTION_FRONTEND_URL = 'https://vikasyadav00.github.io/Elite-Fitness';
-export const DEFAULT_PRODUCTION_API_URL = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
-export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend.onrender.com/api';
+export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
+export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
 
 /**
  * Returns the base URL of the frontend deployment (e.g. https://vikasyadav00.github.io/Elite-Fitness)
@@ -99,13 +99,17 @@ export function getApiBaseUrl() {
       return fromQuery.replace(/\/+$/, '');
     }
 
-    // 3. Stored backend URL from previous session (purged if localhost on production domain or dead loca.lt)
+    // 3. Stored backend URL from previous session (purged if localhost on production domain or dead loca.lt / dead trycloudflare / old onrender)
     const saved = localStorage.getItem('ef_backend_url');
     if (saved) {
       const isLocalhostUrl = saved.includes('localhost') || saved.includes('127.0.0.1');
       const isLocaltunnel = saved.includes('loca.lt');
-      if ((window.location.hostname.includes('github.io') && isLocalhostUrl) || isLocaltunnel) {
-        // Automatically purge stale local dev or dead localtunnel URL
+      const isObsoleteTunnel =
+        saved.includes('trycloudflare.com') ||
+        saved === 'https://elite-fitness-backend.onrender.com/api' ||
+        saved === 'https://elite-fitness-backend.onrender.com';
+      if ((window.location.hostname.includes('github.io') && isLocalhostUrl) || isLocaltunnel || isObsoleteTunnel) {
+        // Automatically purge stale local dev or dead tunnel URL
         localStorage.removeItem('ef_backend_url');
       } else if (!isLocalhostUrl || import.meta.env.DEV) {
         return saved.replace(/\/+$/, '');

@@ -9,12 +9,23 @@ export const isCapacitor = () => {
   );
 };
 
-export const DEFAULT_PRODUCTION_API_URL = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
-export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend.onrender.com/api';
+export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
+export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
 
 export const getApiBaseUrl = () => {
   const customUrl = localStorage.getItem('elite_fitness_api_url');
-  if (customUrl) return customUrl.replace(/\/+$/, '');
+  if (customUrl) {
+    if (
+      customUrl.includes('loca.lt') ||
+      customUrl.includes('trycloudflare.com') ||
+      customUrl === 'https://elite-fitness-backend.onrender.com/api' ||
+      customUrl === 'https://elite-fitness-backend.onrender.com'
+    ) {
+      localStorage.removeItem('elite_fitness_api_url');
+    } else {
+      return customUrl.replace(/\/+$/, '');
+    }
+  }
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (envUrl) return envUrl.replace(/\/+$/, '');
 

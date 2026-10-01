@@ -1,7 +1,7 @@
 // Elite Fitness - Centralized Public URL & QR Configuration for Owner App
 export const DEFAULT_PRODUCTION_FRONTEND_URL = 'https://vikasyadav00.github.io/Elite-Fitness';
-export const DEFAULT_PRODUCTION_API_URL = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
-export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend.onrender.com/api';
+export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
+export const RENDER_BACKEND_API_URL = 'https://elite-fitness-backend-gu8q.onrender.com/api';
 
 /**
  * Returns the clean base URL of the deployed QR web portal
@@ -96,8 +96,13 @@ export function getApiBaseUrl() {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('elite_fitness_api_url');
     if (custom) {
-      // Automatically purge obsolete localtunnel (loca.lt) URLs that are defunct
-      if (custom.includes('loca.lt')) {
+      // Automatically purge obsolete localtunnel, dead trycloudflare, or old onrender URLs without -gu8q
+      if (
+        custom.includes('loca.lt') ||
+        custom.includes('trycloudflare.com') ||
+        custom === 'https://elite-fitness-backend.onrender.com/api' ||
+        custom === 'https://elite-fitness-backend.onrender.com'
+      ) {
         localStorage.removeItem('elite_fitness_api_url');
       } else {
         return custom.replace(/\/+$/, '');

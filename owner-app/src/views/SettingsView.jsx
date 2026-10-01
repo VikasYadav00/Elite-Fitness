@@ -18,7 +18,8 @@ import {
   getPublicUniversalQrUrl,
   getApiBaseUrl,
   getFrontendBaseUrl,
-  DEFAULT_PRODUCTION_API_URL
+  DEFAULT_PRODUCTION_API_URL,
+  RENDER_BACKEND_API_URL
 } from '../urlConfig';
 
 // ─── Utility: centralized registration URL ───────────────────────────────────
@@ -290,11 +291,16 @@ export default function SettingsView() {
 
   // Live Backend Health Check (Tests Public /health and /api/health)
   const checkBackendHealth = async (overrideUrl = null) => {
-    // If the stored URL is the defunct loca.lt, purge it and use the live Cloudflare HTTPS URL
+    // If the stored URL is defunct loca.lt, dead trycloudflare, or old onrender domain without -gu8q, purge it
     let target = overrideUrl || getApiBaseUrl();
-    if (target.includes('loca.lt')) {
+    if (
+      target.includes('loca.lt') ||
+      target.includes('trycloudflare.com') ||
+      target === 'https://elite-fitness-backend.onrender.com/api' ||
+      target === 'https://elite-fitness-backend.onrender.com'
+    ) {
       localStorage.removeItem('elite_fitness_api_url');
-      target = DEFAULT_PRODUCTION_API_URL;
+      target = RENDER_BACKEND_API_URL;
     }
     const targetUrl = target.replace(/\/+$/, '');
     setApiBaseUrl(targetUrl);
@@ -310,7 +316,7 @@ export default function SettingsView() {
       if (res.data?.status === 'ok' || res.data?.success) {
         setApiHealth({
           status: 'online',
-          message: `Live & Operational (${res.data.service || 'Cloud Server'}, ${latency}ms)`,
+          message: `Live & Operational (${res.data.service || 'Render Cloud'}, ${latency}ms)`,
           latency
         });
         return;
@@ -324,7 +330,7 @@ export default function SettingsView() {
       if (res.data?.status === 'ok' || res.data?.success) {
         setApiHealth({
           status: 'online',
-          message: `Live & Operational (${res.data.service || 'Cloud Server'}, ${latency}ms)`,
+          message: `Live & Operational (${res.data.service || 'Render Cloud'}, ${latency}ms)`,
           latency
         });
         return;
@@ -341,7 +347,7 @@ export default function SettingsView() {
       }
     } catch (err) {
       const errorMsg = targetUrl.includes('onrender.com')
-        ? 'Render service not yet created on dashboard.render.com. Use Live Public HTTPS (Cloudflare).'
+        ? 'Render instance waking up (free tier spins down after inactivity, takes 30-50s) or offline.'
         : 'Backend unreachable. Check server status or CORS.';
       setApiHealth({ status: 'offline', message: errorMsg, latency: null });
     }
@@ -985,39 +991,20 @@ export default function SettingsView() {
             <button
               type="button"
               onClick={() => {
-                const url = 'https://significance-jewel-flight-boot.trycloudflare.com/api';
+                const url = RENDER_BACKEND_API_URL;
                 localStorage.setItem('elite_fitness_api_url', url);
                 checkBackendHealth(url);
-                showToast('✅ Switched to Live Public Cloudflare HTTPS API');
-              }}
-              style={{
-                fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
-                background: apiBaseUrl.includes('trycloudflare.com') ? '#0284C7' : '#FFFFFF',
-                color: apiBaseUrl.includes('trycloudflare.com') ? '#FFFFFF' : '#0284C7',
-                border: '1.5px solid #0284C7', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '4px'
-              }}
-            >
-              🌐 Live Public HTTPS (Cloudflare) {apiBaseUrl.includes('trycloudflare.com') && '✓'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const url = 'https://elite-fitness-backend.onrender.com/api';
-                localStorage.setItem('elite_fitness_api_url', url);
-                checkBackendHealth(url);
-                showToast('Switched to Render Cloud Backend API');
+                showToast('✅ Switched to Live Render Cloud Backend API');
               }}
               style={{
                 fontSize: '0.72rem', fontWeight: 700, padding: '5px 12px', borderRadius: '6px',
                 background: apiBaseUrl.includes('onrender.com') ? '#0284C7' : '#FFFFFF',
                 color: apiBaseUrl.includes('onrender.com') ? '#FFFFFF' : '#0284C7',
-                border: '1px solid #BAE6FD', cursor: 'pointer',
+                border: '1.5px solid #0284C7', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              ☁️ Render Cloud {apiBaseUrl.includes('onrender.com') && '✓'}
+              ☁️ Render Cloud (Live) {apiBaseUrl.includes('onrender.com') && '✓'}
             </button>
 
             <button
@@ -1087,12 +1074,23 @@ export default function SettingsView() {
             </div>
           )}
 
+          {apiBaseUrl.includes('onrender.com') && apiHealth.status === 'online' && (
+            <div style={{
+              marginTop: '10px', padding: '8px 12px', background: '#ECFDF5',
+              border: '1px solid #A7F3D0', borderRadius: '8px', fontSize: '0.72rem', color: '#065F46',
+              display: 'flex', alignItems: 'center', gap: '6px'
+            }}>
+              <CheckCircle2 size={14} color="#059669" />
+              <span><strong>Render Cloud is LIVE:</strong> Connected to live production backend (<code>https://elite-fitness-backend-gu8q.onrender.com</code>).</span>
+            </div>
+          )}
+
           {apiBaseUrl.includes('onrender.com') && apiHealth.status === 'offline' && (
             <div style={{
               marginTop: '10px', padding: '8px 12px', background: '#FFFBEB',
               border: '1px solid #FDE68A', borderRadius: '8px', fontSize: '0.72rem', color: '#92400E'
             }}>
-              💡 <strong>Render Service Setup:</strong> The repository already includes <code>render.yaml</code>. To activate Render, go to <a href="https://dashboard.render.com" target="_blank" rel="noreferrer" style={{ color: '#B45309', fontWeight: 700 }}>dashboard.render.com</a> &rarr; <strong>New +</strong> &rarr; <strong>Blueprint</strong> &rarr; select <strong>VikasYadav00/Elite-Fitness</strong>. In the meantime, switch to <strong>🌐 Live Public HTTPS (Cloudflare)</strong> to stay connected globally.
+              ⏳ <strong>Render Free Instance Spinning Up:</strong> Render free web services spin down after inactivity and may take 30–50 seconds to wake up. Please wait a moment and click <strong>Re-test Backend API</strong> above.
             </div>
           )}
         </div>
