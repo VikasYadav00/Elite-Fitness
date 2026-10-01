@@ -122,8 +122,8 @@ export default function BroadcastView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Push Notifications, SMS & WhatsApp</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Push Notifications, SMS & WhatsApp</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
             Broadcast to all registered member mobile numbers via SMS, WhatsApp, and Push simultaneously.
           </p>
         </div>
@@ -133,20 +133,20 @@ export default function BroadcastView() {
       </div>
 
       {/* Recipient Preview Banner */}
-      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
+      <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', background: '#F8FBFF', border: '1px solid #DCEBFA' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Users size={20} color="#F59E0B" />
-          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#F9FAFB' }}>{targetMembers.length}</span>
-          <span style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>members will receive this message</span>
+          <Users size={20} color="#0284C7" />
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1F2937' }}>{targetMembers.length}</span>
+          <span style={{ color: '#6B7280', fontSize: '0.85rem' }}>members will receive this message</span>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {targetMembers.slice(0, 5).map(m => (
-            <span key={m.id} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', padding: '3px 10px', borderRadius: '999px', fontSize: '0.73rem', color: '#D1D5DB' }}>
+            <span key={m.id} style={{ background: '#FFFFFF', border: '1px solid #DCEBFA', padding: '3px 10px', borderRadius: '999px', fontSize: '0.73rem', color: '#4B5563', fontWeight: 600 }}>
               📱 +91 {m.phone}
             </span>
           ))}
           {targetMembers.length > 5 && (
-            <span style={{ background: 'rgba(245,158,11,0.1)', padding: '3px 10px', borderRadius: '999px', fontSize: '0.73rem', color: '#F59E0B', fontWeight: 700 }}>
+            <span style={{ background: '#EAF5FF', border: '1px solid #BAE6FD', padding: '3px 10px', borderRadius: '999px', fontSize: '0.73rem', color: '#0284C7', fontWeight: 700 }}>
               +{targetMembers.length - 5} more
             </span>
           )}
@@ -156,23 +156,23 @@ export default function BroadcastView() {
       {/* Sent Result Card */}
       {sentResult && (
         <div style={{
-          background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)',
+          background: '#ECFDF5', border: '1px solid #A7F3D0',
           borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <CheckCircle size={22} color="#10B981" />
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#10B981' }}>
+            <CheckCircle size={22} color="#059669" />
+            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#065F46' }}>
               Broadcast Sent to {sentResult.total} Members!
             </span>
           </div>
-          <div style={{ fontSize: '0.82rem', color: '#D1D5DB' }}>
+          <div style={{ fontSize: '0.82rem', color: '#374151' }}>
             Channels: {sentResult.channels.map(c => <strong key={c} style={{ marginRight: '8px', color: CHANNEL_CONFIG[c]?.color }}>{c}</strong>)}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>
+          <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>
             Delivered to: {sentResult.numbers.map(n => `+91 ${n}`).join(' · ')}
             {sentResult.more > 0 && ` · and ${sentResult.more} more`}
           </div>
-          <button style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', alignSelf: 'flex-start', fontSize: '0.75rem' }} onClick={() => setSentResult(null)}>
+          <button style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', alignSelf: 'flex-start', fontSize: '0.75rem', fontWeight: 600 }} onClick={() => setSentResult(null)}>
             Dismiss
           </button>
         </div>
@@ -181,7 +181,7 @@ export default function BroadcastView() {
       {!showHistory ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px', alignItems: 'start' }}>
           {/* Compose Form */}
-          <div className="glass-card" style={{ padding: '24px' }}>
+          <div className="glass-card" style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
             <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
               {/* Type */}
@@ -193,9 +193,10 @@ export default function BroadcastView() {
                       key={t} type="button" className="btn-secondary"
                       style={{
                         padding: '8px 16px', fontSize: '0.82rem',
-                        background: type === t ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.04)',
-                        color: type === t ? '#F59E0B' : '#9CA3AF',
-                        borderColor: type === t ? '#F59E0B' : 'rgba(255,255,255,0.1)',
+                        background: type === t ? '#EAF5FF' : '#FFFFFF',
+                        color: type === t ? '#0284C7' : '#6B7280',
+                        borderColor: type === t ? '#4DA6FF' : '#DCEBFA',
+                        fontWeight: 700,
                       }}
                       onClick={() => setType(t)}
                     >
@@ -219,9 +220,10 @@ export default function BroadcastView() {
                       key={key} type="button" className="btn-secondary"
                       style={{
                         padding: '6px 14px', fontSize: '0.78rem',
-                        background: audience === key ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.04)',
-                        color: audience === key ? '#38BDF8' : '#9CA3AF',
-                        borderColor: audience === key ? '#38BDF8' : 'rgba(255,255,255,0.1)',
+                        background: audience === key ? '#EAF5FF' : '#FFFFFF',
+                        color: audience === key ? '#0284C7' : '#6B7280',
+                        borderColor: audience === key ? '#4DA6FF' : '#DCEBFA',
+                        fontWeight: 700,
                       }}
                       onClick={() => setAudience(key)}
                     >
@@ -249,7 +251,7 @@ export default function BroadcastView() {
                   placeholder="Type your message here. Use {name} to personalize for each member..."
                   value={body} onChange={e => setBody(e.target.value)} required
                 />
-                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '4px' }}>
                   Tip: Use {'{name}'} in your message to auto-replace with each member's name
                 </div>
               </div>
@@ -264,8 +266,8 @@ export default function BroadcastView() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: '12px',
                         padding: '12px 16px', borderRadius: '12px', cursor: 'pointer',
-                        background: channels[ch] ? cfg.bg : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${channels[ch] ? cfg.color + '55' : 'rgba(255,255,255,0.06)'}`,
+                        background: channels[ch] ? cfg.bg : '#F8FBFF',
+                        border: `1px solid ${channels[ch] ? cfg.color : '#DCEBFA'}`,
                         transition: 'all 0.2s ease'
                       }}
                     >
@@ -276,7 +278,7 @@ export default function BroadcastView() {
                       />
                       <cfg.icon size={18} color={cfg.color} />
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: channels[ch] ? cfg.color : '#9CA3AF' }}>{ch}</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: channels[ch] ? cfg.color : '#4B5563' }}>{ch}</div>
                         <div style={{ fontSize: '0.72rem', color: '#6B7280' }}>{cfg.desc}</div>
                       </div>
                     </label>
@@ -300,8 +302,8 @@ export default function BroadcastView() {
 
           {/* Templates Panel */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="glass-card" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#F59E0B', marginBottom: '12px' }}>
+            <div className="glass-card" style={{ padding: '20px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1F2937', marginBottom: '12px' }}>
                 📝 Quick Templates
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -309,25 +311,25 @@ export default function BroadcastView() {
                   <button
                     key={i}
                     className="btn-secondary"
-                    style={{ textAlign: 'left', padding: '10px 14px', fontSize: '0.8rem', lineHeight: 1.4 }}
+                    style={{ textAlign: 'left', padding: '10px 14px', fontSize: '0.8rem', lineHeight: 1.4, border: '1px solid #DCEBFA' }}
                     onClick={() => { setBody(tpl.text); }}
                   >
-                    <span style={{ display: 'block', fontWeight: 700, marginBottom: '2px' }}>{tpl.label}</span>
+                    <span style={{ display: 'block', fontWeight: 700, marginBottom: '2px', color: '#1F2937' }}>{tpl.label}</span>
                     <span style={{ color: '#6B7280', fontSize: '0.72rem' }}>{tpl.text.slice(0, 60)}...</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="glass-card" style={{ padding: '18px' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#9CA3AF', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="glass-card" style={{ padding: '18px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#6B7280', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Member Phone Directory
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
                 {targetMembers.map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#F9FAFB', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>{m.name}</span>
-                    <span style={{ fontFamily: 'monospace', color: '#9CA3AF' }}>+91 {m.phone}</span>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: '#F8FBFF', border: '1px solid #DCEBFA', borderRadius: '8px', fontSize: '0.78rem' }}>
+                    <span style={{ color: '#1F2937', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>{m.name}</span>
+                    <span style={{ fontFamily: 'monospace', color: '#6B7280' }}>+91 {m.phone}</span>
                   </div>
                 ))}
               </div>
@@ -337,23 +339,24 @@ export default function BroadcastView() {
       ) : (
         /* Broadcast History — card-based layout */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>📋 Broadcast History</h3>
-            <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>{history.length} broadcasts sent</span>
+          <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #DCEBFA', background: '#FFFFFF' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1F2937' }}>📋 Broadcast History</h3>
+            <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 600 }}>{history.length} broadcasts sent</span>
           </div>
           {history.map(b => (
-            <div key={b.id} className="glass-card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div key={b.id} className="glass-card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#F9FAFB', lineHeight: 1.4, marginBottom: '6px' }}>{b.title}</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1F2937', lineHeight: 1.4, marginBottom: '6px' }}>{b.title}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{
                       padding: '2px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
-                      background: b.type === 'OFFER' ? 'rgba(245,158,11,0.15)' : b.type === 'ANNOUNCEMENT' ? 'rgba(56,189,248,0.15)' : 'rgba(16,185,129,0.15)',
-                      color: b.type === 'OFFER' ? '#F59E0B' : b.type === 'ANNOUNCEMENT' ? '#38BDF8' : '#10B981',
+                      background: b.type === 'OFFER' ? '#FFFBEB' : b.type === 'ANNOUNCEMENT' ? '#F0F9FF' : '#ECFDF5',
+                      color: b.type === 'OFFER' ? '#D97706' : b.type === 'ANNOUNCEMENT' ? '#0284C7' : '#059669',
+                      border: `1px solid ${b.type === 'OFFER' ? '#FDE68A' : b.type === 'ANNOUNCEMENT' ? '#BAE6FD' : '#A7F3D0'}`
                     }}>{b.type}</span>
-                    <span style={{ fontSize: '0.78rem', color: '#F59E0B', fontWeight: 700 }}>👥 {b.sent_to} members</span>
-                    <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>🕐 {b.sent_at}</span>
+                    <span style={{ fontSize: '0.78rem', color: '#0284C7', fontWeight: 700 }}>👥 {b.sent_to} members</span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>🕐 {b.sent_at}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0 }}>

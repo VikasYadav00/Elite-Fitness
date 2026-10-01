@@ -55,8 +55,52 @@ const MONTHLY_FINANCE = [
 ];
 
 export default function PaymentsView() {
-  const [payments] = useState(MOCK_PAYMENTS);
+  const [payments, setPayments] = useState(MOCK_PAYMENTS);
   const [expenses, setExpenses] = useState(MOCK_EXPENSES);
+
+  const loadFinanceData = async () => {
+    try {
+      const [payRes, expRes] = await Promise.allSettled([
+        api.get('/payments?limit=100'),
+        api.get('/expenses?limit=100')
+      ]);
+
+      if (payRes.status === 'fulfilled' && payRes.value.data?.success) {
+        const rows = payRes.value.data.data || [];
+        if (rows.length > 0) {
+          const formatted = rows.map(r => ({
+            id: String(r.id),
+            invoice_number: r.invoice_number || `EF-INV-${r.id}`,
+            member_name: r.full_name || 'Member',
+            reg_id: r.registration_id,
+            plan: r.plan_name || 'Membership Plan',
+            amount: parseFloat(r.amount) || 0,
+            method: r.payment_method || 'UPI',
+            status: r.status || 'SUCCESS',
+            date: r.payment_date ? r.payment_date.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+          }));
+          setPayments(formatted);
+        }
+      }
+
+      if (expRes.status === 'fulfilled' && expRes.value.data?.success) {
+        const rows = expRes.value.data.data || [];
+        if (rows.length > 0) {
+          const formatted = rows.map(r => ({
+            id: String(r.id),
+            title: r.description || r.title || r.category,
+            category: r.category || 'General',
+            amount: parseFloat(r.amount) || 0,
+            date: r.expense_date ? r.expense_date.split('T')[0] : (r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+          }));
+          setExpenses(formatted);
+        }
+      }
+    } catch (err) {
+      console.warn('Finance data load note:', err.message);
+    }
+  };
+
   // Track which UTR IDs have been locally verified/rejected (persists across app restarts)
   const [localStatusOverrides, setLocalStatusOverrides] = useState(() => {
     try {
@@ -121,6 +165,32 @@ export default function PaymentsView() {
     const effectiveStatus = override || r.status;
     return effectiveStatus === 'PENDING' || effectiveStatus === 'PENDING_CASH';
   }).length;
+
+  const computedMonthlyFinance = React.useMemo(() => {
+    const monthMap = {};
+    payments.forEach(p => {
+      if (p.status === 'SUCCESS' && p.date) {
+        const d = new Date(p.date);
+        if (!isNaN(d.getTime())) {
+          const mKey = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+          if (!monthMap[mKey]) monthMap[mKey] = { month: mKey, revenue: 0, expense: 0, order: d.getTime() };
+          monthMap[mKey].revenue += Number(p.amount) || 0;
+        }
+      }
+    });
+    expenses.forEach(e => {
+      if (e.date) {
+        const d = new Date(e.date);
+        if (!isNaN(d.getTime())) {
+          const mKey = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+          if (!monthMap[mKey]) monthMap[mKey] = { month: mKey, revenue: 0, expense: 0, order: d.getTime() };
+          monthMap[mKey].expense += Number(e.amount) || 0;
+        }
+      }
+    });
+    const computed = Object.values(monthMap).sort((a,b) => b.order - a.order);
+    return computed.length > 0 ? computed : MONTHLY_FINANCE;
+  }, [payments, expenses]);
 
   const showToast = (msg, type = 'success') => {
     setToastMessage(msg);
@@ -207,6 +277,7 @@ export default function PaymentsView() {
 
       const overrides = JSON.parse(localStorage.getItem('ef_utr_statuses') || '{}');
       setUtrRequests(mergeOverrides(deduped, overrides));
+      await loadFinanceData();
     }
     loadRequests();
 
@@ -237,6 +308,7 @@ export default function PaymentsView() {
           return updated;
         });
         showToast(`💰 New ${isCash ? 'Cash Payment Due' : 'UPI Payment'} from ${r.full_name}!`);
+        loadFinanceData();
       }
     });
 
@@ -292,13 +364,13 @@ export default function PaymentsView() {
 
     try {
       await api.post(`/payment-requests/${requestId}/verify`);
+      await loadFinanceData();
     } catch (err) {
       console.log('Backend verify note:', err.message);
     } finally {
       setProcessingId(null);
     }
   };
-
 
   // Reject a UTR payment
   const handleReject = async () => {
@@ -321,6 +393,7 @@ export default function PaymentsView() {
 
     try {
       await api.post(`/payment-requests/${rejectModal.id}/reject`, { rejection_reason: rejectReason });
+      await loadFinanceData();
     } catch (err) {
       console.log('Backend reject note:', err.message);
     } finally {
@@ -328,17 +401,45 @@ export default function PaymentsView() {
     }
   };
 
-  const handleAddExpense = (e) => {
+  const handleAddExpense = async (e) => {
     e.preventDefault();
-    setExpenses([{
-      id: String(Date.now()),
-      ...newExpense,
-      amount: Number(newExpense.amount),
-      date: new Date().toISOString().split('T')[0]
-    }, ...expenses]);
-    setShowAddExpense(false);
-    showToast('Expense recorded successfully!');
-    setNewExpense({ title: '', category: 'Rent', amount: '' });
+    if (!newExpense.title.trim() || !newExpense.amount) return;
+
+    try {
+      const res = await api.post('/expenses', {
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        description: newExpense.title.trim(),
+        expense_date: new Date().toISOString().split('T')[0]
+      });
+
+      const savedItem = res.data?.data;
+      const expenseObj = {
+        id: String(savedItem?.id || Date.now()),
+        title: newExpense.title.trim(),
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        date: new Date().toISOString().split('T')[0]
+      };
+
+      setExpenses(prev => [expenseObj, ...prev]);
+      setShowAddExpense(false);
+      showToast('Expense recorded successfully in ledger & database!');
+      setNewExpense({ title: '', category: 'Rent', amount: '' });
+      await loadFinanceData();
+    } catch (err) {
+      const expenseObj = {
+        id: String(Date.now()),
+        title: newExpense.title.trim(),
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        date: new Date().toISOString().split('T')[0]
+      };
+      setExpenses(prev => [expenseObj, ...prev]);
+      setShowAddExpense(false);
+      showToast('Expense recorded locally!');
+      setNewExpense({ title: '', category: 'Rent', amount: '' });
+    }
   };
 
   const formatTime = (isoStr) => {
@@ -365,20 +466,23 @@ export default function PaymentsView() {
         <div style={{
           position: 'fixed',
           bottom: '24px',
-          right: '24px',
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: `1px solid ${toastType === 'success' ? '#10B981' : '#EF4444'}`,
-          color: '#F9FAFB',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: `1.5px solid ${toastType === 'success' ? '#A7F3D0' : '#FECACA'}`,
+          color: '#1F2937',
           padding: '12px 20px',
           borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.15)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.875rem'
+          fontSize: '0.875rem',
+          whiteSpace: 'nowrap',
+          maxWidth: '90vw',
         }}>
-          {toastType === 'success' ? <Sparkles size={18} color="#10B981" /> : <XCircle size={18} color="#EF4444" />}
+          {toastType === 'success' ? <Sparkles size={16} color="#059669" /> : <XCircle size={16} color="#DC2626" />}
           <span>{toastMessage}</span>
         </div>
       )}
@@ -386,8 +490,8 @@ export default function PaymentsView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Finance & Payment Management</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Finance & Payment Management</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
             UTR verification queue, invoices, expenses, and net profit overview.
           </p>
         </div>
@@ -401,53 +505,53 @@ export default function PaymentsView() {
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
         <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ArrowDownRight size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Total Revenue</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10B981' }}>₹{totalIncome.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Total Revenue</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#059669' }}>₹{totalIncome.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
         <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ArrowUpRight size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Total Expenses</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#EF4444' }}>₹{totalExpense.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Total Expenses</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#DC2626' }}>₹{totalExpense.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
         <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#EAF5FF', color: '#4DA6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <TrendingUp size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Net Profit</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: netProfit >= 0 ? '#10B981' : '#EF4444' }}>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Net Profit</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: netProfit >= 0 ? '#059669' : '#DC2626' }}>
               ₹{netProfit.toLocaleString('en-IN')}
             </div>
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderColor: pendingUTRCount > 0 ? 'rgba(245, 158, 11, 0.4)' : undefined }}
+        <div className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderColor: pendingUTRCount > 0 ? '#B3D4F5' : undefined }}
           onClick={() => setActiveTab('utr')}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: pendingUTRCount > 0 ? '#FFFBEB' : '#EAF5FF', color: pendingUTRCount > 0 ? '#D97706' : '#4DA6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
             <Clock size={22} />
             {pendingUTRCount > 0 && (
               <span style={{
                 position: 'absolute', top: '-6px', right: '-6px',
-                background: '#EF4444', color: '#fff',
+                background: '#DC2626', color: '#fff',
                 borderRadius: '999px', width: '18px', height: '18px',
                 fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>{pendingUTRCount}</span>
             )}
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Pending UTR Queue</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: pendingUTRCount > 0 ? '#F59E0B' : '#9CA3AF' }}>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Pending UTR Queue</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: pendingUTRCount > 0 ? '#D97706' : '#6B7280' }}>
               {pendingUTRCount} Requests
             </div>
           </div>
@@ -458,7 +562,7 @@ export default function PaymentsView() {
       <div style={{
         display: 'flex',
         gap: '4px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        borderBottom: '1px solid #DCEBFA',
         paddingBottom: '0',
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
@@ -471,8 +575,8 @@ export default function PaymentsView() {
             style={{
               background: 'none',
               border: 'none',
-              borderBottom: activeTab === tab.id ? '2px solid #F59E0B' : '2px solid transparent',
-              color: activeTab === tab.id ? '#F59E0B' : '#9CA3AF',
+              borderBottom: activeTab === tab.id ? '2px solid #4DA6FF' : '2px solid transparent',
+              color: activeTab === tab.id ? '#4DA6FF' : '#6B7280',
               fontWeight: 700,
               fontSize: '0.88rem',
               padding: '10px 18px',
@@ -487,7 +591,7 @@ export default function PaymentsView() {
             {tab.label}
             {tab.badge > 0 && (
               <span style={{
-                background: '#EF4444', color: '#fff',
+                background: '#DC2626', color: '#fff',
                 borderRadius: '999px', padding: '1px 6px',
                 fontSize: '0.72rem', fontWeight: 800
               }}>{tab.badge}</span>
@@ -528,8 +632,9 @@ export default function PaymentsView() {
                     className="glass-card"
                     style={{
                       padding: '20px',
-                      border: isCash ? '1.5px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(245, 158, 11, 0.35)',
-                      background: 'rgba(15, 23, 42, 0.85)'
+                      border: isCash ? '1.5px solid #FDE68A' : '1px solid #DCEBFA',
+                      background: isCash ? '#FFFDF5' : '#FFFFFF',
+                      boxShadow: '0 2px 8px rgba(77, 166, 255, 0.08)'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
@@ -539,17 +644,17 @@ export default function PaymentsView() {
                           <div style={{
                             width: '38px', height: '38px', borderRadius: '10px',
                             background: isCash
-                              ? 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(217,119,6,0.15))'
-                              : 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1))',
-                            border: '1px solid rgba(245,158,11,0.3)',
+                              ? '#FFFBEB'
+                              : '#EAF5FF',
+                            border: `1px solid ${isCash ? '#FDE68A' : '#BAE6FD'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 800, color: '#F59E0B', fontSize: '0.85rem', fontFamily: 'Outfit,sans-serif'
+                            fontWeight: 800, color: isCash ? '#D97706' : '#0284C7', fontSize: '0.85rem', fontFamily: 'Outfit,sans-serif'
                           }}>
                             {req.member_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '1rem', color: '#F9FAFB' }}>{req.member_name}</div>
-                            <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#F59E0B' }}>{req.reg_id}</div>
+                            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#1F2937' }}>{req.member_name}</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#0284C7', fontWeight: 700 }}>{req.reg_id}</div>
                           </div>
 
                           {isCash ? (
@@ -558,9 +663,9 @@ export default function PaymentsView() {
                               borderRadius: '999px',
                               fontSize: '0.72rem',
                               fontWeight: 800,
-                              background: 'rgba(245,158,11,0.2)',
-                              color: '#F59E0B',
-                              border: '1px solid rgba(245,158,11,0.4)'
+                              background: '#FFFBEB',
+                              color: '#D97706',
+                              border: '1px solid #FDE68A'
                             }}>
                               💵 CASH DUE AT RECEPTION
                             </span>
@@ -570,9 +675,9 @@ export default function PaymentsView() {
                               borderRadius: '999px',
                               fontSize: '0.72rem',
                               fontWeight: 800,
-                              background: 'rgba(245,158,11,0.15)',
-                              color: '#F59E0B',
-                              border: '1px solid rgba(245,158,11,0.3)'
+                              background: '#FFFBEB',
+                              color: '#D97706',
+                              border: '1px solid #FDE68A'
                             }}>
                               PENDING VERIFICATION
                             </span>
@@ -580,41 +685,41 @@ export default function PaymentsView() {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px', marginTop: '8px' }}>
-                          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
+                          <div style={{ background: '#F8FBFF', border: '1px solid #DCEBFA', padding: '10px 14px', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
                               Plan
                             </div>
-                            <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{req.plan}</div>
+                            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1F2937' }}>{req.plan}</div>
                           </div>
 
-                          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
+                          <div style={{ background: '#F8FBFF', border: '1px solid #DCEBFA', padding: '10px 14px', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
                               {isCash ? 'Cash to Collect' : 'Amount Paid'}
                             </div>
-                            <div style={{ fontWeight: 800, fontSize: '1rem', color: isCash ? '#F59E0B' : '#10B981' }}>
+                            <div style={{ fontWeight: 800, fontSize: '1rem', color: isCash ? '#D97706' : '#059669' }}>
                               ₹{req.amount.toLocaleString('en-IN')}
                             </div>
                           </div>
 
-                          <div style={{ background: isCash ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.06)', padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.2)' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
+                          <div style={{ background: isCash ? '#FFFBEB' : '#F0F9FF', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${isCash ? '#FDE68A' : '#BAE6FD'}` }}>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
                               {isCash ? 'Payment Mode' : 'UTR Number'}
                             </div>
-                            <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: isCash ? '#10B981' : '#F59E0B', letterSpacing: '0.03em' }}>
+                            <div style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: isCash ? '#059669' : '#0284C7', letterSpacing: '0.03em' }}>
                               {isCash ? 'Cash at Counter' : req.utr_number}
                             </div>
                           </div>
 
-                          <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '10px' }}>
-                            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
+                          <div style={{ background: '#F8FBFF', border: '1px solid #DCEBFA', padding: '10px 14px', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: '2px' }}>
                               Submitted At
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: '#D1D5DB' }}>{formatTime(req.submitted_at)}</div>
+                            <div style={{ fontSize: '0.82rem', color: '#4B5563' }}>{formatTime(req.submitted_at)}</div>
                           </div>
                         </div>
 
                         {req.proof_note && (
-                          <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginTop: '4px', fontStyle: 'italic' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '4px', fontStyle: 'italic' }}>
                             Note: "{req.proof_note}"
                           </div>
                         )}
@@ -647,8 +752,9 @@ export default function PaymentsView() {
                           style={{
                             padding: '9px 18px',
                             fontSize: '0.83rem',
-                            borderColor: 'rgba(239, 68, 68, 0.4)',
-                            color: '#F87171',
+                            borderColor: '#FECACA',
+                            color: '#DC2626',
+                            background: '#FFFFFF',
                             gap: '6px'
                           }}
                           onClick={() => setRejectModal({ id: req.id, member_name: req.member_name })}
@@ -658,7 +764,7 @@ export default function PaymentsView() {
                           Reject ✗
                         </button>
 
-                        <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#6B7280', textAlign: 'center' }}>
                           {isCash ? 'Collect cash before activating' : 'Match UTR before verifying'}
                         </div>
                       </div>
@@ -796,9 +902,9 @@ export default function PaymentsView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Month mini-cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-            {MONTHLY_FINANCE.map(m => {
+            {computedMonthlyFinance.map(m => {
               const profit = m.revenue - m.expense;
-              const margin = Math.round((profit / m.revenue) * 100);
+              const margin = m.revenue > 0 ? Math.round((profit / m.revenue) * 100) : 0;
               return (
                 <div key={m.month} className="glass-card" style={{ padding: '16px 18px' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#F59E0B', marginBottom: '10px' }}>{m.month}</div>
@@ -810,7 +916,7 @@ export default function PaymentsView() {
                   <div style={{ fontWeight: 900, color: profit >= 0 ? '#F59E0B' : '#EF4444', marginBottom: '8px' }}>₹{profit.toLocaleString('en-IN')}</div>
                   {/* Margin bar */}
                   <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '999px', height: '5px', overflow: 'hidden' }}>
-                    <div style={{ width: `${margin}%`, height: '100%', background: margin >= 20 ? '#10B981' : margin >= 10 ? '#F59E0B' : '#EF4444', borderRadius: '999px' }} />
+                    <div style={{ width: `${Math.max(0, Math.min(100, margin))}%`, height: '100%', background: margin >= 20 ? '#10B981' : margin >= 10 ? '#F59E0B' : '#EF4444', borderRadius: '999px' }} />
                   </div>
                   <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginTop: '4px' }}>Margin: {margin}%</div>
                 </div>
@@ -821,7 +927,7 @@ export default function PaymentsView() {
           {/* Summary Table */}
           <div className="glass-card" style={{ overflowX: 'auto' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F9FAFB' }}>Month-wise Finance Summary (Last 6 Months)</h3>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F9FAFB' }}>Month-wise Finance Summary</h3>
             </div>
             <table className="table">
               <thead>
@@ -834,9 +940,9 @@ export default function PaymentsView() {
                 </tr>
               </thead>
               <tbody>
-                {MONTHLY_FINANCE.map(m => {
+                {computedMonthlyFinance.map(m => {
                   const profit = m.revenue - m.expense;
-                  const margin = Math.round((profit / m.revenue) * 100);
+                  const margin = m.revenue > 0 ? Math.round((profit / m.revenue) * 100) : 0;
                   return (
                     <tr key={m.month}>
                       <td style={{ fontWeight: 700, color: '#F9FAFB' }}>{m.month}</td>
@@ -858,11 +964,11 @@ export default function PaymentsView() {
               </tbody>
               <tfoot>
                 <tr style={{ background: 'rgba(245,158,11,0.05)' }}>
-                  <td style={{ fontWeight: 800, color: '#F59E0B' }}>TOTAL (6 Mo)</td>
-                  <td style={{ color: '#10B981', fontWeight: 900 }}>₹{MONTHLY_FINANCE.reduce((a,m)=>a+m.revenue,0).toLocaleString('en-IN')}</td>
-                  <td style={{ color: '#F87171', fontWeight: 900 }}>₹{MONTHLY_FINANCE.reduce((a,m)=>a+m.expense,0).toLocaleString('en-IN')}</td>
-                  <td style={{ color: '#F59E0B', fontWeight: 900 }}>₹{(MONTHLY_FINANCE.reduce((a,m)=>a+m.revenue,0)-MONTHLY_FINANCE.reduce((a,m)=>a+m.expense,0)).toLocaleString('en-IN')}</td>
-                  <td><span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>Avg: {Math.round(MONTHLY_FINANCE.reduce((a,m)=>a+Math.round(((m.revenue-m.expense)/m.revenue)*100),0)/MONTHLY_FINANCE.length)}%</span></td>
+                  <td style={{ fontWeight: 800, color: '#F59E0B' }}>TOTAL</td>
+                  <td style={{ color: '#10B981', fontWeight: 900 }}>₹{computedMonthlyFinance.reduce((a,m)=>a+m.revenue,0).toLocaleString('en-IN')}</td>
+                  <td style={{ color: '#F87171', fontWeight: 900 }}>₹{computedMonthlyFinance.reduce((a,m)=>a+m.expense,0).toLocaleString('en-IN')}</td>
+                  <td style={{ color: '#F59E0B', fontWeight: 900 }}>₹{(computedMonthlyFinance.reduce((a,m)=>a+m.revenue,0)-computedMonthlyFinance.reduce((a,m)=>a+m.expense,0)).toLocaleString('en-IN')}</td>
+                  <td><span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>Avg Margin</span></td>
                 </tr>
               </tfoot>
             </table>

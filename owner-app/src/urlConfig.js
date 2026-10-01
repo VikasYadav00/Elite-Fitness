@@ -89,24 +89,32 @@ export function getPublicAttendanceUrl() {
 
 /**
  * Production Backend API URL
+ * In production and mobile APK, strictly connects to the live HTTPS backend server
  */
 export function getApiBaseUrl() {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('elite_fitness_api_url');
-    if (custom) return custom;
+    if (custom) return custom.replace(/\/+$/, '');
   }
 
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
 
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // In local development on browser
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:5000/api';
-    }
-    // In Capacitor mobile Android APK, if not customized, connect to host machine or production
+    // In Capacitor mobile Android APK, always connect to live production HTTPS backend
     if (window.Capacitor !== undefined || window.location.protocol === 'capacitor:') {
-      return 'http://192.168.1.49:5000/api';
+      return DEFAULT_PRODUCTION_API_URL;
+    }
+
+    const hostname = window.location.hostname;
+    // In local development on browser ONLY during active Vite dev
+    if (import.meta.env.DEV && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      // If dev user has explicitly chosen local or if local backend is preferred in dev
+      const devPreference = localStorage.getItem('ef_dev_prefer_local');
+      if (devPreference === 'true') {
+        return 'http://localhost:5000/api';
+      }
+      return DEFAULT_PRODUCTION_API_URL;
     }
   }
 

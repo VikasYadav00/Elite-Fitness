@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Dumbbell, Lock, Mail, Eye, EyeOff, ShieldCheck,
-  ArrowRight, AlertCircle, Check
+  ArrowRight, AlertCircle
 } from 'lucide-react';
 import api from '../api';
 
@@ -102,92 +102,112 @@ export default function LoginView({ onLoginSuccess }) {
     setLoading(false);
   };
 
-
-
   return (
     <div style={{
       minHeight: '100vh',
       width: '100%',
-      background: 'radial-gradient(ellipse at top, #1E293B 0%, #0B0F17 70%, #05070A 100%)',
+      background: 'linear-gradient(160deg, #EAF5FF 0%, #F8FBFF 45%, #E0F0FF 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px 16px',
       boxSizing: 'border-box',
-      fontFamily: 'Outfit, sans-serif'
+      fontFamily: 'Outfit, sans-serif',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+
+      {/* Decorative background circles */}
+      <div style={{
+        position: 'absolute', top: '-80px', right: '-80px',
+        width: '300px', height: '300px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(77,166,255,0.12) 0%, transparent 70%)',
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-60px', left: '-60px',
+        width: '240px', height: '240px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(124,198,254,0.1) 0%, transparent 70%)',
+        pointerEvents: 'none'
+      }} />
+
       <div style={{
         width: '100%',
         maxWidth: '440px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px'
+        gap: '22px',
+        position: 'relative',
+        zIndex: 1,
       }}>
+
         {/* Brand Header */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{
             width: '64px',
             height: '64px',
             borderRadius: '20px',
-            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+            background: 'linear-gradient(135deg, #4DA6FF 0%, #2E8FE8 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 32px rgba(245, 158, 11, 0.4), 0 0 0 1px rgba(245, 158, 11, 0.6)',
-            marginBottom: '16px'
+            boxShadow: '0 8px 24px rgba(77, 166, 255, 0.4)',
+            marginBottom: '14px',
           }}>
-            <Dumbbell size={32} color="#0B0F17" strokeWidth={2.5} />
+            <Dumbbell size={32} color="#FFFFFF" strokeWidth={2.5} />
           </div>
 
           <h1 style={{
             fontSize: '1.85rem',
             fontWeight: 900,
-            color: '#F9FAFB',
+            color: '#1F2937',
             letterSpacing: '0.04em',
-            margin: '0 0 6px 0'
+            margin: '0 0 6px 0',
+            fontFamily: 'Outfit, sans-serif',
           }}>
-            ELITE <span style={{ color: '#F59E0B' }}>FITNESS</span>
+            ELITE <span style={{ color: '#4DA6FF' }}>FITNESS</span>
           </h1>
 
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '4px 12px',
+            padding: '4px 14px',
             borderRadius: '999px',
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            color: '#F59E0B',
-            fontSize: '0.75rem',
+            background: 'rgba(77, 166, 255, 0.1)',
+            border: '1px solid rgba(77, 166, 255, 0.3)',
+            color: '#2E8FE8',
+            fontSize: '0.74rem',
             fontWeight: 800,
             letterSpacing: '0.06em',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
           }}>
             <ShieldCheck size={14} /> Owner & Management Portal
           </div>
         </div>
 
-        {/* Login Glass Card */}
-        <div className="glass-card" style={{
-          padding: '28px 24px',
-          background: 'rgba(17, 24, 39, 0.85)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+        {/* Login Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid #DCEBFA',
           borderRadius: '24px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)'
+          padding: '28px 24px',
+          boxShadow: '0 8px 32px rgba(77, 166, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
         }}>
           <h2 style={{
-            fontSize: '1.25rem',
+            fontSize: '1.2rem',
             fontWeight: 800,
-            color: '#F9FAFB',
-            margin: '0 0 6px 0'
+            color: '#1F2937',
+            margin: '0 0 5px 0',
+            fontFamily: 'Outfit, sans-serif',
           }}>
             Sign In to Dashboard
           </h2>
           <p style={{
-            fontSize: '0.82rem',
-            color: '#9CA3AF',
+            fontSize: '0.8rem',
+            color: '#6B7280',
             margin: '0 0 20px 0',
-            lineHeight: 1.4
+            lineHeight: 1.5,
           }}>
             Enter your owner credentials to manage memberships, view finance, and monitor live attendance.
           </p>
@@ -195,48 +215,50 @@ export default function LoginView({ onLoginSuccess }) {
           {/* Error Banner */}
           {error && (
             <div style={{
-              padding: '12px 14px',
+              padding: '11px 14px',
               borderRadius: '12px',
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: '1px solid rgba(239, 68, 68, 0.35)',
-              color: '#FCA5A5',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#DC2626',
               fontSize: '0.82rem',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '10px',
               marginBottom: '18px',
-              lineHeight: 1.4
+              lineHeight: 1.4,
             }}>
-              <AlertCircle size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <AlertCircle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>{error}</span>
             </div>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Username / Email / Phone */}
+
+            {/* Email / Phone */}
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.78rem',
+                fontSize: '0.74rem',
                 fontWeight: 700,
-                color: '#D1D5DB',
+                color: '#6B7280',
                 marginBottom: '6px',
                 textTransform: 'uppercase',
-                letterSpacing: '0.04em'
+                letterSpacing: '0.05em',
               }}>
                 Owner Email or Phone
               </label>
               <div style={{ position: 'relative' }}>
-                <Mail size={18} color="#9CA3AF" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                <Mail size={17} color="#9CA3AF" style={{ position: 'absolute', left: '13px', top: '13px' }} />
                 <input
                   type="text"
                   className="input-field"
                   placeholder="e.g. owner@elitefitness.com"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
-                  style={{ paddingLeft: '42px', fontSize: '0.9rem' }}
+                  style={{ paddingLeft: '40px', fontSize: '0.9rem' }}
                   required
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -245,60 +267,56 @@ export default function LoginView({ onLoginSuccess }) {
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.78rem',
+                fontSize: '0.74rem',
                 fontWeight: 700,
-                color: '#D1D5DB',
+                color: '#6B7280',
                 marginBottom: '6px',
                 textTransform: 'uppercase',
-                letterSpacing: '0.04em'
+                letterSpacing: '0.05em',
               }}>
                 Password
               </label>
               <div style={{ position: 'relative' }}>
-                <Lock size={18} color="#9CA3AF" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+                <Lock size={17} color="#9CA3AF" style={{ position: 'absolute', left: '13px', top: '13px' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input-field"
                   placeholder="Enter owner password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  style={{ paddingLeft: '42px', paddingRight: '42px', fontSize: '0.9rem' }}
+                  style={{ paddingLeft: '40px', paddingRight: '40px', fontSize: '0.9rem' }}
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '11px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#9CA3AF',
-                    cursor: 'pointer',
-                    padding: '2px'
+                    position: 'absolute', right: '12px', top: '11px',
+                    background: 'none', border: 'none',
+                    color: '#9CA3AF', cursor: 'pointer', padding: '2px',
+                    display: 'flex', alignItems: 'center',
                   }}
                   title={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
             {/* Remember Me */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#9CA3AF' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#6B7280' }}>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  style={{ accentColor: '#F59E0B', width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
+                  style={{ accentColor: '#4DA6FF', width: '15px', height: '15px', cursor: 'pointer' }}
                 />
                 Remember this device
               </label>
-
-              <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 700 }}>
-                SSL 256-bit Encrypted
+              <span style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700 }}>
+                🔒 SSL 256-bit
               </span>
             </div>
 
@@ -316,7 +334,7 @@ export default function LoginView({ onLoginSuccess }) {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
               }}
             >
               {loading ? (
@@ -325,13 +343,12 @@ export default function LoginView({ onLoginSuccess }) {
                 <>Sign In to Owner Portal <ArrowRight size={18} /></>
               )}
             </button>
+
           </form>
-
-
         </div>
 
         {/* Security Footer Note */}
-        <div style={{ textAlign: 'center', color: '#6B7280', fontSize: '0.72rem' }}>
+        <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: '0.72rem' }}>
           Elite Fitness Management System v2.6 • Authorized Owner Access Only
         </div>
       </div>

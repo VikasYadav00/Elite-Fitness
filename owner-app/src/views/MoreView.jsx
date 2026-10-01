@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Award, UserCheck, Dumbbell, Target, Megaphone,
   FileSpreadsheet, Settings, LogOut, ChevronRight,
-  Wifi, Shield, PhoneCall, Sparkles, Building, MapPin,
+  Wifi, PhoneCall, Sparkles, MapPin,
   CreditCard, Star
 } from 'lucide-react';
 import { getApiBaseUrl } from '../api';
@@ -16,32 +16,36 @@ const MODULE_GROUPS = [
         title: 'Plans & Pricing',
         desc: 'Manage memberships, durations, pricing & popular badges',
         icon: Award,
-        color: '#F59E0B',
-        bg: 'rgba(245, 158, 11, 0.15)',
+        color: '#D97706',
+        bg: '#FFFBEB',
+        border: '#FDE68A',
       },
       {
         id: 'trainers',
         title: 'Trainers & Staff',
         desc: 'Instructor profiles, specializations & member counts',
         icon: UserCheck,
-        color: '#10B981',
-        bg: 'rgba(16, 185, 129, 0.15)',
+        color: '#059669',
+        bg: '#ECFDF5',
+        border: '#A7F3D0',
       },
       {
         id: 'workouts',
         title: 'Workouts & Nutrition',
         desc: 'Workout routine splits & dietary plan templates',
         icon: Dumbbell,
-        color: '#38BDF8',
-        bg: 'rgba(56, 189, 248, 0.15)',
+        color: '#4DA6FF',
+        bg: '#EAF5FF',
+        border: '#DCEBFA',
       },
       {
         id: 'leads',
         title: 'Leads CRM',
         desc: 'Inquiries, walk-in leads & conversion pipeline',
         icon: Target,
-        color: '#EC4899',
-        bg: 'rgba(236, 72, 153, 0.15)',
+        color: '#7C3AED',
+        bg: '#F5F3FF',
+        border: '#DDD6FE',
       },
     ],
   },
@@ -53,32 +57,36 @@ const MODULE_GROUPS = [
         title: 'Feedback & Reviews',
         desc: 'Member star ratings, Google Lens review QR standee & reviews',
         icon: Star,
-        color: '#F59E0B',
-        bg: 'rgba(245, 158, 11, 0.15)',
+        color: '#D97706',
+        bg: '#FFFBEB',
+        border: '#FDE68A',
       },
       {
         id: 'complaints',
         title: 'Complaints & Support',
         desc: 'View & manage support requests from the Universal QR',
         icon: PhoneCall,
-        color: '#38BDF8',
-        bg: 'rgba(56, 189, 248, 0.15)',
+        color: '#4DA6FF',
+        bg: '#EAF5FF',
+        border: '#DCEBFA',
       },
       {
         id: 'broadcast',
         title: 'Push & Offers',
         desc: 'Broadcast SMS, WhatsApp & app announcements',
         icon: Megaphone,
-        color: '#8B5CF6',
-        bg: 'rgba(139, 92, 246, 0.15)',
+        color: '#7C3AED',
+        bg: '#F5F3FF',
+        border: '#DDD6FE',
       },
       {
         id: 'reports',
         title: 'Reports & Export',
         desc: 'Export Excel reports with custom date ranges',
         icon: FileSpreadsheet,
-        color: '#10B981',
-        bg: 'rgba(16, 185, 129, 0.15)',
+        color: '#059669',
+        bg: '#ECFDF5',
+        border: '#A7F3D0',
       },
     ],
   },
@@ -90,24 +98,27 @@ const MODULE_GROUPS = [
         title: 'UPI Payment QR',
         desc: 'Configure UPI ID, upload merchant QR & download counter standee',
         icon: CreditCard,
-        color: '#10B981',
-        bg: 'rgba(16, 185, 129, 0.15)',
+        color: '#059669',
+        bg: '#ECFDF5',
+        border: '#A7F3D0',
       },
       {
         id: 'gym-media',
         title: 'Gym Media & Google Maps',
         desc: 'Upload gym photos & tour clips shown on Google Maps search',
         icon: MapPin,
-        color: '#38BDF8',
-        bg: 'rgba(56, 189, 248, 0.15)',
+        color: '#4DA6FF',
+        bg: '#EAF5FF',
+        border: '#DCEBFA',
       },
       {
         id: 'settings',
         title: 'Gym Settings & Universal QR',
         desc: 'Gym profile info, universal entrance QR standee & password security',
         icon: Settings,
-        color: '#F59E0B',
-        bg: 'rgba(245, 158, 11, 0.15)',
+        color: '#6B7280',
+        bg: '#F9FAFB',
+        border: '#E5E7EB',
       },
     ],
   },
@@ -129,41 +140,44 @@ export default function MoreView({ setActiveTab, onLogout }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '20px' }}>
-      {/* Gym Owner Profile Header Card */}
-      <div className="glass-card" style={{
-        padding: '18px',
-        background: 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(17,24,39,0.92) 100%)',
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', paddingBottom: '20px' }}>
+
+      {/* ── Gym Owner Profile Header Card ─────────────────────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #4DA6FF 0%, #2E8FE8 100%)',
+        borderRadius: '16px',
+        padding: '18px 20px',
         display: 'flex',
         alignItems: 'center',
         gap: '14px',
-        border: '1px solid rgba(245,158,11,0.35)'
+        boxShadow: '0 4px 16px rgba(77, 166, 255, 0.3)',
       }}>
         <div style={{
-          width: '52px',
-          height: '52px',
-          borderRadius: '16px',
-          background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+          width: '50px',
+          height: '50px',
+          borderRadius: '14px',
+          background: 'rgba(255, 255, 255, 0.25)',
+          border: '1.5px solid rgba(255, 255, 255, 0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#000',
+          color: '#FFFFFF',
           fontWeight: 900,
-          fontSize: '1.25rem',
+          fontSize: '1.15rem',
           flexShrink: 0,
-          boxShadow: '0 4px 14px rgba(245,158,11,0.35)'
+          fontFamily: 'Outfit, sans-serif',
         }}>
           EF
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
               Elite Fitness Gym
             </h2>
-            <Sparkles size={15} color="#F59E0B" />
+            <Sparkles size={14} color="rgba(255,255,255,0.85)" />
           </div>
-          <p style={{ color: '#9CA3AF', fontSize: '0.78rem', margin: '2px 0 0 0' }}>
+          <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.76rem', margin: '2px 0 0 0' }}>
             Owner Administrator Portal
           </p>
         </div>
@@ -171,18 +185,19 @@ export default function MoreView({ setActiveTab, onLogout }) {
         <button
           onClick={onLogout}
           style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#F87171',
+            background: 'rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            color: '#FFFFFF',
             borderRadius: '10px',
             padding: '8px 12px',
-            fontSize: '0.75rem',
+            fontSize: '0.74rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             cursor: 'pointer',
-            flexShrink: 0
+            flexShrink: 0,
+            transition: 'background-color 0.15s ease',
           }}
           title="Logout"
         >
@@ -191,28 +206,27 @@ export default function MoreView({ setActiveTab, onLogout }) {
         </button>
       </div>
 
-      {/* Module Groups */}
+      {/* ── Module Groups ─────────────────────────────────────────────────────── */}
       {MODULE_GROUPS.map((group, idx) => (
         <div key={idx}>
           <div style={{
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             fontWeight: 800,
-            color: '#94A3B8',
+            color: '#6B7280',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             marginBottom: '8px',
-            paddingLeft: '4px'
+            paddingLeft: '4px',
           }}>
             {group.groupTitle}
           </div>
 
           <div style={{
-            background: 'rgba(17, 24, 39, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
+            background: '#FFFFFF',
+            border: '1px solid #DCEBFA',
+            borderRadius: '14px',
             overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+            boxShadow: '0 1px 3px rgba(77, 166, 255, 0.06)',
           }}>
             {group.items.map((item, i) => {
               const Icon = item.icon;
@@ -224,46 +238,49 @@ export default function MoreView({ setActiveTab, onLogout }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '14px',
-                    padding: '14px 16px',
+                    padding: '13px 16px',
                     cursor: 'pointer',
-                    borderBottom: i < group.items.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
-                    transition: 'background 0.15s ease',
-                    minHeight: '56px'
+                    borderBottom: i < group.items.length - 1 ? '1px solid #DCEBFA' : 'none',
+                    transition: 'background-color 0.15s ease',
+                    minHeight: '56px',
                   }}
-                  onMouseDown={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                  onMouseUp={(e) => { e.currentTarget.style.background = ''; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#EAF5FF'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
+                  onTouchStart={(e) => { e.currentTarget.style.background = '#EAF5FF'; }}
+                  onTouchEnd={(e) => { e.currentTarget.style.background = ''; }}
                 >
                   <div style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '11px',
                     background: item.bg,
+                    border: `1px solid ${item.border}`,
                     color: item.color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flexShrink: 0
+                    flexShrink: 0,
                   }}>
-                    <Icon size={20} />
+                    <Icon size={19} />
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#F9FAFB' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1F2937' }}>
                       {item.title}
                     </div>
                     <div style={{
-                      fontSize: '0.74rem',
-                      color: '#9CA3AF',
+                      fontSize: '0.73rem',
+                      color: '#6B7280',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      marginTop: '2px'
+                      marginTop: '1px',
                     }}>
                       {item.desc}
                     </div>
                   </div>
 
-                  <ChevronRight size={18} color="#64748B" style={{ flexShrink: 0 }} />
+                  <ChevronRight size={17} color="#B3D4F5" style={{ flexShrink: 0 }} />
                 </div>
               );
             })}
@@ -271,25 +288,26 @@ export default function MoreView({ setActiveTab, onLogout }) {
         </div>
       ))}
 
-      {/* Connectivity & Server Settings Card */}
+      {/* ── Network & Server Settings Card ────────────────────────────────────── */}
       <div>
         <div style={{
-          fontSize: '0.72rem',
+          fontSize: '0.7rem',
           fontWeight: 800,
-          color: '#94A3B8',
+          color: '#6B7280',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           marginBottom: '8px',
-          paddingLeft: '4px'
+          paddingLeft: '4px',
         }}>
           Network & Backend Sync
         </div>
 
         <div style={{
-          background: 'rgba(17, 24, 39, 0.85)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px',
-          overflow: 'hidden'
+          background: '#FFFFFF',
+          border: '1px solid #DCEBFA',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(77, 166, 255, 0.06)',
         }}>
           <div
             onClick={() => setShowIpModal(true)}
@@ -297,47 +315,55 @@ export default function MoreView({ setActiveTab, onLogout }) {
               display: 'flex',
               alignItems: 'center',
               gap: '14px',
-              padding: '14px 16px',
+              padding: '13px 16px',
               cursor: 'pointer',
-              minHeight: '56px'
+              minHeight: '56px',
+              transition: 'background-color 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#EAF5FF'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
           >
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10B981',
+              width: '40px',
+              height: '40px',
+              borderRadius: '11px',
+              background: '#ECFDF5',
+              border: '1px solid #A7F3D0',
+              color: '#059669',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0
+              flexShrink: 0,
             }}>
-              <Wifi size={20} />
+              <Wifi size={19} />
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#F9FAFB' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1F2937' }}>
                 Server Connection IP
               </div>
               <div style={{
                 fontSize: '0.74rem',
-                color: '#10B981',
+                color: '#4DA6FF',
                 fontFamily: 'monospace',
-                marginTop: '2px'
+                marginTop: '1px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 {serverUrl}
               </div>
             </div>
 
             <span style={{
-              padding: '4px 10px',
+              padding: '3px 10px',
               borderRadius: '999px',
-              background: 'rgba(245, 158, 11, 0.12)',
-              color: '#F59E0B',
+              background: '#EAF5FF',
+              color: '#4DA6FF',
               fontSize: '0.72rem',
               fontWeight: 700,
-              flexShrink: 0
+              flexShrink: 0,
+              border: '1px solid #DCEBFA',
             }}>
               Edit
             </span>
@@ -345,14 +371,14 @@ export default function MoreView({ setActiveTab, onLogout }) {
         </div>
       </div>
 
-      {/* Server IP Config Modal */}
+      {/* ── Server IP Config Modal ─────────────────────────────────────────────── */}
       {showIpModal && (
         <div className="modal-overlay" onClick={() => setShowIpModal(false)}>
-          <div className="modal-content animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1.15rem', color: '#F59E0B', fontWeight: 800, marginBottom: '8px' }}>
-              📡 Configure Backend Server IP
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1.1rem', color: '#1F2937', fontWeight: 800, marginBottom: '6px', fontFamily: 'Outfit, sans-serif' }}>
+              📡 Configure Backend Server
             </h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.8rem', marginBottom: '16px' }}>
+            <p style={{ color: '#6B7280', fontSize: '0.8rem', marginBottom: '18px', lineHeight: 1.5 }}>
               When testing this APK on different Wi-Fi networks, update your PC's IP address here so the phone can sync live data.
             </p>
 
@@ -370,12 +396,12 @@ export default function MoreView({ setActiveTab, onLogout }) {
               </div>
 
               {savedSuccess && (
-                <div style={{ color: '#10B981', fontSize: '0.82rem', fontWeight: 700 }}>
+                <div style={{ color: '#059669', fontSize: '0.82rem', fontWeight: 700 }}>
                   ✓ Server URL saved! Reloading live sync.
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button
                   type="button"
                   className="btn-secondary"

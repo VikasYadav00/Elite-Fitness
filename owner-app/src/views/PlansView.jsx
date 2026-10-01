@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Award, Plus, Edit2, Trash2, X, Check, Star,
   Clock, IndianRupee, Sparkles, ToggleLeft, ToggleRight
@@ -21,6 +21,26 @@ export default function PlansView() {
   const [formData, setFormData] = useState(BLANK_PLAN);
   const [deletingId, setDeletingId] = useState(null);
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    async function loadPlans() {
+      try {
+        const res = await api.get('/membership-plans');
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setPlans(res.data.data.map(p => ({
+            id: String(p.id),
+            plan_name: p.plan_name,
+            duration_months: p.duration_months,
+            price: parseFloat(p.price) || 0,
+            description: p.description || '',
+            popular: !!p.popular,
+            status: p.status || 'ACTIVE'
+          })));
+        }
+      } catch (_) {}
+    }
+    loadPlans();
+  }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -85,14 +105,15 @@ export default function PlansView() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '24px', right: '24px',
-          background: 'linear-gradient(135deg,#1E293B,#0F172A)',
-          border: `1px solid ${toast.type === 'success' ? '#10B981' : '#EF4444'}`,
-          color: '#F9FAFB', padding: '12px 20px', borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem'
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: `1.5px solid ${toast.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+          color: '#1F2937', padding: '12px 20px', borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.15)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem',
+          whiteSpace: 'nowrap', maxWidth: '90vw'
         }}>
-          <Sparkles size={18} color={toast.type === 'success' ? '#10B981' : '#EF4444'} />
+          <Sparkles size={16} color={toast.type === 'success' ? '#059669' : '#DC2626'} />
           {toast.msg}
         </div>
       )}
@@ -100,8 +121,8 @@ export default function PlansView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Membership Plans & Pricing</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Membership Plans & Pricing</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
             Add, edit, or remove membership packages. Changes reflect instantly in the member portal.
           </p>
         </div>
@@ -120,7 +141,7 @@ export default function PlansView() {
               padding: '24px',
               position: 'relative',
               opacity: p.status === 'INACTIVE' ? 0.65 : 1,
-              border: p.popular ? '2px solid rgba(245,158,11,0.6)' : '1px solid rgba(255,255,255,0.08)',
+              border: p.popular ? '2px solid #4DA6FF' : '1px solid #DCEBFA',
               transition: 'all 0.25s ease'
             }}
           >
@@ -128,8 +149,8 @@ export default function PlansView() {
             {p.popular && (
               <span style={{
                 position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
-                background: 'linear-gradient(135deg,#F59E0B,#D97706)',
-                color: '#000', fontSize: '0.68rem', fontWeight: 800,
+                background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
+                color: '#FFFFFF', fontSize: '0.68rem', fontWeight: 800,
                 padding: '2px 14px', borderRadius: '9999px', whiteSpace: 'nowrap'
               }}>
                 ⭐ MOST POPULAR
@@ -152,20 +173,20 @@ export default function PlansView() {
 
             {/* Plan Name */}
             <div style={{ paddingRight: '70px', marginBottom: '8px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F9FAFB', lineHeight: 1.3 }}>{p.plan_name}</h3>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1F2937', lineHeight: 1.3 }}>{p.plan_name}</h3>
             </div>
 
             {/* Description */}
-            <p style={{ color: '#9CA3AF', fontSize: '0.82rem', marginBottom: '16px', minHeight: '36px' }}>
+            <p style={{ color: '#6B7280', fontSize: '0.82rem', marginBottom: '16px', minHeight: '36px' }}>
               {p.description}
             </p>
 
             {/* Price */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#F59E0B', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#4DA6FF', lineHeight: 1 }}>
                 ₹{p.price.toLocaleString('en-IN')}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '4px' }}>
                 for {p.duration_months} month{p.duration_months > 1 ? 's' : ''} &nbsp;·&nbsp;
                 <span style={{ color: '#10B981', fontWeight: 600 }}>
                   ≈ ₹{pricePerMonth(p.price, p.duration_months).toLocaleString('en-IN')}/mo
@@ -174,7 +195,7 @@ export default function PlansView() {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #DCEBFA', paddingTop: '16px' }}>
               <button
                 className="btn-secondary"
                 style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}

@@ -505,23 +505,24 @@ export default function PaymentQRView() {
       {toastMessage && (
         <div style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 9999,
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: '1.5px solid #F59E0B',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA',
           borderRadius: '12px',
-          padding: '12px 18px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+          padding: '12px 20px',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           fontSize: '0.85rem',
-          color: '#F9FAFB',
+          color: '#1F2937',
           fontWeight: 700,
           whiteSpace: 'pre-line'
         }}>
-          <Sparkles size={18} color="#F59E0B" />
+          <Sparkles size={18} color="#4DA6FF" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -540,23 +541,24 @@ export default function PaymentQRView() {
       {/* Top Banner */}
       <div className="glass-card" style={{
         padding: '24px',
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.9))',
-        border: '1px solid rgba(245, 158, 11, 0.3)'
+        background: '#FFFFFF',
+        border: '1px solid #DCEBFA',
+        boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: '#EAF5FF', color: '#0284C7', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px' }}>
               <CreditCard size={14} /> UPI PAYMENT QR SETUP
             </div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#F9FAFB', margin: '0 0 4px 0' }}>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#1F2937', margin: '0 0 4px 0' }}>
               UPI Payment Desk & Counter Standee
             </h2>
-            <p style={{ color: '#9CA3AF', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: '#6B7280', fontSize: '0.85rem', margin: 0 }}>
               Configure your official UPI ID and generate printable payment standees for members to scan & pay.
             </p>
           </div>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10B981', fontSize: '0.78rem', fontWeight: 800 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '999px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#059669', fontSize: '0.78rem', fontWeight: 800 }}>
             <ShieldCheck size={16} /> LIVE IN REGISTRATION & RENEWALS
           </div>
         </div>
@@ -571,9 +573,9 @@ export default function PaymentQRView() {
       }}>
 
         {/* Left Column: UPI Configuration Form */}
-        <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Smartphone size={18} /> UPI Account Details
+        <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1F2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Smartphone size={18} color="#4DA6FF" /> UPI Account Details
           </h3>
 
           <div>
@@ -593,17 +595,17 @@ export default function PaymentQRView() {
                 style={{ padding: '8px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                 onClick={handleCopyUpiId}
               >
-                {copiedUpi ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+                {copiedUpi ? <Check size={14} color="#059669" /> : <Copy size={14} />}
                 {copiedUpi ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.72rem', color: '#6B7280', marginTop: '4px' }}>
               Members scanning the QR will transfer fees directly to this UPI ID.
             </div>
 
             {/* Quick 1-tap Bank Handle Selector */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94A3B8', alignSelf: 'center', marginRight: '2px' }}>Presets:</span>
+              <span style={{ fontSize: '0.7rem', color: '#6B7280', alignSelf: 'center', marginRight: '2px' }}>Presets:</span>
               {[
                 { label: 'PhonePe (@ybl)', val: '8953933110@ybl' },
                 { label: 'GPay (@okhdfcbank)', val: '8953933110@okhdfcbank' },
@@ -629,9 +631,9 @@ export default function PaymentQRView() {
                     padding: '4px 8px',
                     fontSize: '0.7rem',
                     borderRadius: '6px',
-                    background: upiId === p.val ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255,255,255,0.06)',
-                    border: upiId === p.val ? '1px solid #F59E0B' : '1px solid rgba(255,255,255,0.12)',
-                    color: upiId === p.val ? '#F59E0B' : '#CBD5E1',
+                    background: upiId === p.val ? '#EAF5FF' : '#F8FBFF',
+                    border: upiId === p.val ? '1px solid #4DA6FF' : '1px solid #DCEBFA',
+                    color: upiId === p.val ? '#0284C7' : '#4B5563',
                     cursor: 'pointer',
                     fontWeight: upiId === p.val ? 800 : 500
                   }}
@@ -666,12 +668,12 @@ export default function PaymentQRView() {
 
           {/* QR Mode Switcher */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#F8FBFF',
+            border: '1px solid #DCEBFA',
             borderRadius: '14px',
             padding: '16px'
           }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F9FAFB', marginBottom: '8px' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1F2937', marginBottom: '8px' }}>
               QR Code Mode
             </div>
 
@@ -683,9 +685,9 @@ export default function PaymentQRView() {
                   flex: 1,
                   padding: '8px 12px',
                   borderRadius: '10px',
-                  border: !isCustomImage ? '1.5px solid #F59E0B' : '1px solid rgba(255,255,255,0.1)',
-                  background: !isCustomImage ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.02)',
-                  color: !isCustomImage ? '#F59E0B' : '#9CA3AF',
+                  border: !isCustomImage ? '1.5px solid #4DA6FF' : '1px solid #DCEBFA',
+                  background: !isCustomImage ? '#EAF5FF' : '#FFFFFF',
+                  color: !isCustomImage ? '#0284C7' : '#6B7280',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   cursor: 'pointer'
@@ -698,9 +700,9 @@ export default function PaymentQRView() {
                 flex: 1,
                 padding: '8px 12px',
                 borderRadius: '10px',
-                border: isCustomImage ? '1.5px solid #F59E0B' : '1px solid rgba(255,255,255,0.1)',
-                background: isCustomImage ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.02)',
-                color: isCustomImage ? '#F59E0B' : '#9CA3AF',
+                border: isCustomImage ? '1.5px solid #4DA6FF' : '1px solid #DCEBFA',
+                background: isCustomImage ? '#EAF5FF' : '#FFFFFF',
+                color: isCustomImage ? '#0284C7' : '#6B7280',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
@@ -712,7 +714,7 @@ export default function PaymentQRView() {
               </label>
             </div>
 
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', lineHeight: 1.5 }}>
+            <div style={{ fontSize: '0.72rem', color: '#6B7280', lineHeight: 1.5 }}>
               {!isCustomImage ? (
                 <span>
                   🟢 <strong>Dynamic UPI QR active:</strong> Automatically embeds your UPI ID ({safeUpiId}). Any app (GPay, PhonePe, Paytm) opens with payment ready!
@@ -727,8 +729,8 @@ export default function PaymentQRView() {
 
           {/* Public Registration Cash Security Card */}
           <div style={{
-            background: allowCashOnQr ? 'rgba(245, 158, 11, 0.06)' : 'rgba(16, 185, 129, 0.06)',
-            border: `1.5px solid ${allowCashOnQr ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
+            background: allowCashOnQr ? '#FFFBEB' : '#ECFDF5',
+            border: `1.5px solid ${allowCashOnQr ? '#FDE68A' : '#A7F3D0'}`,
             borderRadius: '14px',
             padding: '16px',
             display: 'flex',
@@ -737,8 +739,8 @@ export default function PaymentQRView() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldCheck size={18} color={allowCashOnQr ? '#F59E0B' : '#10B981'} />
-                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#F9FAFB' }}>
+                <ShieldCheck size={18} color={allowCashOnQr ? '#D97706' : '#059669'} />
+                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1F2937' }}>
                   Public QR Cash Security
                 </span>
               </div>
@@ -759,14 +761,14 @@ export default function PaymentQRView() {
                     }).catch(() => {});
                     showToast(val ? '⚠️ Cash option enabled on QR (Requires cash verification at desk)' : '🔒 Cash disabled on QR. Members must pay online via UPI.');
                   }}
-                  style={{ width: '18px', height: '18px', accentColor: '#F59E0B', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', accentColor: '#4DA6FF', cursor: 'pointer' }}
                 />
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: allowCashOnQr ? '#F59E0B' : '#10B981' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: allowCashOnQr ? '#D97706' : '#059669' }}>
                   {allowCashOnQr ? 'ENABLED' : 'DISABLED (Recommended)'}
                 </span>
               </label>
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#CBD5E1', lineHeight: 1.45 }}>
+            <div style={{ fontSize: '0.74rem', color: '#4B5563', lineHeight: 1.45 }}>
               {allowCashOnQr ? (
                 <span>
                   ⚠️ <strong>Cash option allowed on QR portal:</strong> Members can submit details with "Cash at Reception". Their membership will remain strictly <strong>INACTIVE</strong> until verified & paid at the counter.
@@ -794,8 +796,8 @@ export default function PaymentQRView() {
                 justifyContent: 'center',
                 gap: '8px',
                 background: savedSuccess
-                  ? 'linear-gradient(135deg, #10B981, #059669)'
-                  : 'linear-gradient(135deg, #F59E0B, #D97706)'
+                  ? 'linear-gradient(135deg, #059669, #047857)'
+                  : 'linear-gradient(135deg, #4DA6FF, #2E8FE8)'
               }}
               onClick={handleSavePaymentDetails}
               disabled={savingPaymentQr}
@@ -815,9 +817,9 @@ export default function PaymentQRView() {
                 onClick={handleClearPaymentQR}
                 style={{
                   padding: '12px 16px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#F87171',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#DC2626',
                   borderRadius: '12px',
                   fontSize: '0.8rem',
                   fontWeight: 700,
@@ -834,14 +836,14 @@ export default function PaymentQRView() {
         <div className="glass-card" style={{
           padding: '24px',
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-          border: '2px solid #F59E0B',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.5)'
+          background: '#FFFFFF',
+          border: '1.5px solid #4DA6FF',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.12)'
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
             💳 RECEPTION PAYMENT STANDEE
           </div>
-          <p style={{ color: '#9CA3AF', fontSize: '0.72rem', margin: '0 0 16px 0' }}>
+          <p style={{ color: '#6B7280', fontSize: '0.72rem', margin: '0 0 16px 0' }}>
             Live preview of the standee poster for your gym front desk
           </p>
 
@@ -851,7 +853,8 @@ export default function PaymentQRView() {
             padding: '16px',
             borderRadius: '18px',
             display: 'inline-block',
-            boxShadow: '0 12px 32px rgba(245, 158, 11, 0.25), 0 0 0 2px rgba(245, 158, 11, 0.35)',
+            border: '2px solid #DCEBFA',
+            boxShadow: '0 8px 20px rgba(77, 166, 255, 0.15)',
             marginBottom: '14px'
           }}>
             {isCustomImage ? (
@@ -871,13 +874,13 @@ export default function PaymentQRView() {
             )}
           </div>
 
-          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#F8FAFC', marginBottom: '2px' }}>
+          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#1F2937', marginBottom: '2px' }}>
             {safeMerchant}
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#F59E0B', fontWeight: 800, marginBottom: '6px' }}>
+          <div style={{ fontSize: '0.8rem', color: '#0284C7', fontWeight: 800, marginBottom: '6px' }}>
             UPI ID: {safeUpiId}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '14px' }}>
+          <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '14px' }}>
             Accepted: Google Pay • PhonePe • Paytm • BHIM • UPI
           </div>
 
@@ -913,7 +916,7 @@ export default function PaymentQRView() {
                   justifyContent: 'center',
                   gap: '6px',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                  background: 'linear-gradient(135deg, #0284C7, #0369A1)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '10px',
@@ -937,7 +940,7 @@ export default function PaymentQRView() {
             </button>
           </div>
 
-          <div style={{ marginTop: '12px', fontSize: '0.68rem', color: '#64748B', lineHeight: 1.5 }}>
+          <div style={{ marginTop: '12px', fontSize: '0.68rem', color: '#6B7280', lineHeight: 1.5 }}>
             💡 Paste on reception counter so members can scan, pay, and submit UTR for instant verification.
           </div>
         </div>

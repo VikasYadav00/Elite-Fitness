@@ -18,6 +18,16 @@ const logger = createLogger({
   ),
   defaultMeta: { service: 'elite-fitness-backend' },
   transports: [
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.timestamp({ format: 'HH:mm:ss' }),
+        format.printf(({ level, message, timestamp, ...meta }) => {
+          const metaStr = Object.keys(meta).length > 1 ? JSON.stringify(meta) : '';
+          return `${timestamp} [${level}]: ${message} ${metaStr}`;
+        })
+      ),
+    }),
     new transports.File({
       filename: path.join(logsDir, 'error.log'),
       level: 'error',
@@ -31,19 +41,5 @@ const logger = createLogger({
     }),
   ],
 });
-
-// Development console logging
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    format: format.combine(
-      format.colorize(),
-      format.timestamp({ format: 'HH:mm:ss' }),
-      format.printf(({ level, message, timestamp, ...meta }) => {
-        const metaStr = Object.keys(meta).length > 1 ? JSON.stringify(meta) : '';
-        return `${timestamp} [${level}]: ${message} ${metaStr}`;
-      })
-    ),
-  }));
-}
 
 module.exports = logger;

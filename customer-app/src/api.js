@@ -9,16 +9,27 @@ export const isCapacitor = () => {
   );
 };
 
+export const DEFAULT_PRODUCTION_API_URL = 'https://elite-fitness-backend.onrender.com/api';
+
 export const getApiBaseUrl = () => {
   const customUrl = localStorage.getItem('elite_fitness_api_url');
-  if (customUrl) return customUrl;
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  // If in Android APK via Capacitor, default to host machine LAN IP
-  if (isCapacitor()) {
-    return 'http://192.168.1.49:5000/api';
+  if (customUrl) return customUrl.replace(/\/+$/, '');
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
+
+  // If running in local Vite development on desktop browser only
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      const devPreference = localStorage.getItem('ef_dev_prefer_local');
+      if (devPreference === 'true') {
+        return 'http://localhost:5000/api';
+      }
+    }
   }
-  // Otherwise browser default
-  return 'http://localhost:5000/api';
+
+  // Production default for APK on mobile data (4G/5G) and Web worldwide
+  return DEFAULT_PRODUCTION_API_URL;
 };
 
 const api = axios.create({

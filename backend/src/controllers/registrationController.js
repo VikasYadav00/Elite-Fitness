@@ -248,7 +248,7 @@ async function completeRegistration(req, res) {
 
   // Determine membership & payment statuses
   const membershipStatus = (methodUpper === 'ONLINE') ? 'ACTIVE' : (methodUpper === 'UPI' ? 'ACTIVE' : 'INACTIVE');
-  const paymentStatus = (methodUpper === 'ONLINE') ? 'SUCCESS' : (methodUpper === 'UPI' ? 'PENDING' : 'DUE');
+  const paymentStatus = (methodUpper === 'ONLINE') ? 'SUCCESS' : 'PENDING';
 
   let dbSuccess = false;
   let userRecord = null;

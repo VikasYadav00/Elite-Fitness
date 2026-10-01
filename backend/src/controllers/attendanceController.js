@@ -4,7 +4,6 @@ const { successResponse, errorResponse, getPagination, formatPagination } = requ
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
 
-
 // POST /api/attendance/check-in
 async function checkIn(req, res) {
   const { member_id, method = 'MANUAL', notes } = req.body;
@@ -82,8 +81,6 @@ async function qrCheckIn(req, res) {
   }
 
   const member_id = memberRows[0].id;
-
-  // Use checkIn logic
   req.body.member_id = member_id;
   req.body.method = 'QR';
   return checkIn(req, res);
@@ -147,9 +144,64 @@ async function getTodayAttendance(req, res) {
   });
 }
 
+// GET /api/attendance/roster (Active members with today's attendance status for search & manual check-in)
+async function getAttendanceMembers(req, res) {
+  const today = req.query.date || new Date().toISOString().split('T')[0];
+  const search = req.query.search;
+
+  let whereConditions = [`m.status = 'ACTIVE'`];
+  const params = [today];
+  let idx = 2;
+
+  if (search && search.trim()) {
+    whereConditions.push(`(u.full_name ILIKE $${idx} OR m.registration_id ILIKE $${idx} OR u.phone ILIKE $${idx})`);
+    params.push(`%${search.trim()}%`);
+    idx++;
+  }
+
+  const { rows } = await query(
+    `SELECT m.id as member_id, m.registration_id, m.status as member_status,
+            u.full_name, u.phone, u.email,
+            mp.plan_name, mb.end_date, mb.payment_status,
+            a.id as attendance_id, a.check_in_time, a.method,
+            CASE WHEN a.id IS NOT NULL THEN 'PRESENT' ELSE 'NOT_CHECKED_IN' END as today_status
+     FROM members m
+     INNER JOIN users u ON u.id = m.user_id
+     LEFT JOIN memberships mb ON mb.member_id = m.id AND mb.membership_status = 'ACTIVE'
+     LEFT JOIN membership_plans mp ON mp.id = mb.plan_id
+     LEFT JOIN attendance a ON a.member_id = m.id AND a.date = $1
+     WHERE ${whereConditions.join(' AND ')}
+     ORDER BY (a.id IS NOT NULL) DESC, u.full_name ASC`,
+    params
+  );
+
+  return successResponse(res, 'Attendance members roster retrieved', rows);
+}
+
 // POST /api/attendance/manual
 async function manualAttendance(req, res) {
   const { member_id, date, status = 'PRESENT', notes } = req.body;
+
+  let targetMemberId = member_id;
+
+  // If member_id is a registration_id or phone number, resolve to numeric member_id
+  if (!targetMemberId || isNaN(Number(targetMemberId))) {
+    const ident = String(member_id || '').trim();
+    const cleanP = ident.replace(/\D/g, '').slice(-10);
+    const { rows: mFound } = await query(
+      `SELECT m.id FROM members m
+       INNER JOIN users u ON u.id = m.user_id
+       WHERE UPPER(m.registration_id) = UPPER($1) OR u.phone = $1 OR RIGHT(u.phone, 10) = $2 LIMIT 1`,
+      [ident, cleanP]
+    );
+    if (mFound && mFound.length > 0) {
+      targetMemberId = mFound[0].id;
+    } else {
+      return errorResponse(res, `Member with ID or Phone "${ident}" not found.`, null, 404);
+    }
+  }
+
+  const attDate = date || new Date().toISOString().split('T')[0];
 
   const { rows } = await query(
     `INSERT INTO attendance (member_id, date, check_in_time, method, status, notes)
@@ -157,10 +209,22 @@ async function manualAttendance(req, res) {
      ON CONFLICT (member_id, date)
      DO UPDATE SET status = $3, notes = $4, method = 'MANUAL'
      RETURNING *`,
-    [member_id, date, status, notes || null]
+    [targetMemberId, attDate, status, notes || null]
   );
 
-  return successResponse(res, 'Attendance recorded', rows[0]);
+  // Fetch full joined details for the frontend
+  const { rows: fullRows } = await query(
+    `SELECT a.*, u.full_name, u.phone, m.registration_id
+     FROM attendance a
+     INNER JOIN members m ON m.id = a.member_id
+     INNER JOIN users u ON u.id = m.user_id
+     WHERE a.id = $1`,
+    [rows[0].id]
+  );
+
+  const returnedItem = fullRows && fullRows.length > 0 ? fullRows[0] : rows[0];
+  logger.info(`Manual attendance marked: member_id=${targetMemberId}, status=${status}`);
+  return successResponse(res, 'Attendance recorded successfully', returnedItem);
 }
 
 // POST /api/attendance/generate-qr (OWNER)
@@ -168,14 +232,13 @@ async function generateAttendanceQR(req, res) {
   const userId = req.user.id;
   const today = new Date().toISOString().split('T')[0];
 
-  // Deactivate previous sessions for today from this owner
   await query(
     `UPDATE attendance_sessions SET is_active = false WHERE valid_for_date = $1 AND created_by = $2`,
     [today, userId]
   );
 
   const sessionToken = uuidv4();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 hours
+  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
 
   const { rows } = await query(
     `INSERT INTO attendance_sessions (session_token, created_by, valid_for_date, expires_at)
@@ -201,7 +264,6 @@ async function qrSessionCheckIn(req, res) {
     return errorResponse(res, 'session_token and device_fingerprint are required.');
   }
 
-  // Validate session is active & not expired & for today
   const { rows: sessions } = await query(
     `SELECT * FROM attendance_sessions
      WHERE session_token = $1 AND is_active = true AND expires_at > NOW() AND valid_for_date = CURRENT_DATE`,
@@ -212,7 +274,6 @@ async function qrSessionCheckIn(req, res) {
     return errorResponse(res, 'Invalid or expired QR. Ask the gym owner to regenerate.', null, 400);
   }
 
-  // Get member profile
   const { rows: memberRows } = await query(
     `SELECT id FROM members WHERE user_id = $1`,
     [userId]
@@ -225,7 +286,6 @@ async function qrSessionCheckIn(req, res) {
   const member_id = memberRows[0].id;
   const today = new Date().toISOString().split('T')[0];
 
-  // Device-lock: one device → one check-in per day (across all members)
   const { rows: deviceCheck } = await query(
     `SELECT id FROM attendance WHERE date = $1 AND device_fingerprint = $2`,
     [today, device_fingerprint]
@@ -240,7 +300,6 @@ async function qrSessionCheckIn(req, res) {
     );
   }
 
-  // Member already checked in today?
   const { rows: existing } = await query(
     `SELECT id FROM attendance WHERE member_id = $1 AND date = $2`,
     [member_id, today]
@@ -250,7 +309,6 @@ async function qrSessionCheckIn(req, res) {
     return errorResponse(res, 'You have already checked in today.', null, 409);
   }
 
-  // Verify active membership
   const { rows: mbRows } = await query(
     `SELECT id FROM memberships
      WHERE member_id = $1 AND membership_status = 'ACTIVE' AND end_date >= CURRENT_DATE LIMIT 1`,
@@ -261,7 +319,6 @@ async function qrSessionCheckIn(req, res) {
     return errorResponse(res, 'No active membership. Please renew to check in.', null, 403);
   }
 
-  // Mark attendance with device fingerprint stored
   const { rows } = await query(
     `INSERT INTO attendance (member_id, date, check_in_time, method, status, device_fingerprint, session_token)
      VALUES ($1, $2, NOW(), 'QR', 'PRESENT', $3, $4)
@@ -290,7 +347,7 @@ async function publicTableCheckIn(req, res) {
       `SELECT m.id, m.registration_id, m.status, u.full_name, u.phone
        FROM members m
        INNER JOIN users u ON u.id = m.user_id
-       WHERE m.registration_id = $1 OR u.phone = $1 OR u.phone = $2`,
+       WHERE UPPER(m.registration_id) = UPPER($1) OR u.phone = $1 OR RIGHT(u.phone, 10) = $2`,
       [queryIdentifier, cleanPhone]
     );
 
@@ -304,12 +361,18 @@ async function publicTableCheckIn(req, res) {
       // Check active membership with confirmed payment
       const { rows: mbRows } = await query(
         `SELECT id, payment_status FROM memberships
-         WHERE member_id = $1 AND membership_status = 'ACTIVE' AND payment_status = 'PAID' AND end_date >= CURRENT_DATE LIMIT 1`,
+         WHERE member_id = $1 AND membership_status = 'ACTIVE' AND end_date >= CURRENT_DATE LIMIT 1`,
         [member.id]
       );
 
       if (mbRows.length === 0) {
-        return errorResponse(res, '🚫 ACCESS DENIED: Membership is not active or payment is pending at reception. Please complete payment at the front desk to enter.', null, 403);
+        return errorResponse(res, '🚫 ACCESS DENIED: Membership has expired or is not active. Please renew at the front desk.', null, 403);
+      }
+
+      // Check if payment is pending (for cash or unverified UTR)
+      const currentMb = mbRows[0];
+      if (currentMb.payment_status === 'PENDING' || currentMb.payment_status === 'DUE') {
+        return errorResponse(res, '🚫 ACCESS DENIED: Payment is pending verification at the gym reception desk. Please show your receipt/pass to activate entry.', null, 403);
       }
 
       // Check if already checked in today
@@ -343,7 +406,6 @@ async function publicTableCheckIn(req, res) {
   }
 }
 
-
 // Ingest cloud sync attendance into database
 async function ingestCloudAttendance(data) {
   if (!data) return;
@@ -352,19 +414,21 @@ async function ingestCloudAttendance(data) {
   if (!regId) return;
 
   try {
+    const cleanPhone = regId.replace(/\D/g, '').slice(-10);
     await query(
       `INSERT INTO attendance (member_id, date, check_in_time, method, status, notes)
        SELECT m.id, $1, NOW(), $2, 'PRESENT', $3
        FROM members m
-       WHERE (m.registration_id = $4 OR m.phone = $5) AND m.status = 'ACTIVE'
-       ON CONFLICT DO NOTHING`,
-      [date, data.method || 'QR_TABLE_SCAN', 'Cloud Table QR scan', regId, regId]
+       INNER JOIN users u ON u.id = m.user_id
+       WHERE (UPPER(m.registration_id) = UPPER($4) OR RIGHT(u.phone, 10) = $5) AND m.status = 'ACTIVE'
+       ON CONFLICT (member_id, date) DO NOTHING`,
+      [date, data.method || 'QR_TABLE_SCAN', 'Cloud Table QR scan', regId, cleanPhone]
     );
   } catch (_) {}
 }
 
 module.exports = {
-  checkIn, checkOut, qrCheckIn, getAttendance, getTodayAttendance,
+  checkIn, checkOut, qrCheckIn, getAttendance, getTodayAttendance, getAttendanceMembers,
   manualAttendance, generateAttendanceQR, qrSessionCheckIn, publicTableCheckIn,
   ingestCloudAttendance
 };

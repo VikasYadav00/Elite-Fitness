@@ -121,20 +121,36 @@ async function getMyPaymentRequests(req, res) {
 // POST /api/payment-requests/:id/verify  (OWNER — verify UTR, activate membership)
 async function verifyPaymentRequest(req, res) {
   const { id } = req.params;
-  const ownerId = req.user.id;
+  const ownerId = req.user ? req.user.id : null;
 
-  const { rows: reqRows } = await query(
-    `SELECT pr.*, mp.duration_months, mp.price FROM payment_requests pr
-     INNER JOIN membership_plans mp ON mp.id = pr.plan_id
-     WHERE pr.id = $1`,
-    [id]
-  );
+  // Flexible lookup: ID can be numeric ID, or string UTR/registration_id
+  let prRows = [];
+  if (/^\d+$/.test(String(id))) {
+    const { rows } = await query(
+      `SELECT pr.*, mp.duration_months, mp.price FROM payment_requests pr
+       INNER JOIN membership_plans mp ON mp.id = pr.plan_id
+       WHERE pr.id = $1`,
+      [parseInt(id, 10)]
+    );
+    prRows = rows;
+  }
+  if (prRows.length === 0) {
+    const { rows } = await query(
+      `SELECT pr.*, mp.duration_months, mp.price, m.registration_id FROM payment_requests pr
+       INNER JOIN membership_plans mp ON mp.id = pr.plan_id
+       INNER JOIN members m ON m.id = pr.member_id
+       WHERE pr.utr_number = $1 OR m.registration_id = $1`,
+      [String(id)]
+    );
+    prRows = rows;
+  }
 
-  if (reqRows.length === 0) {
+  if (prRows.length === 0) {
     return errorResponse(res, 'Payment request not found.', null, 404);
   }
 
-  const pr = reqRows[0];
+  const pr = prRows[0];
+  const requestId = pr.id;
 
   if (pr.status !== 'PENDING' && pr.status !== 'PENDING_CASH') {
     return errorResponse(res, `This request is already ${pr.status}.`, null, 409);
@@ -144,41 +160,89 @@ async function verifyPaymentRequest(req, res) {
   const paymentMethod = isCash ? 'CASH' : 'UPI';
 
   const result = await withTransaction(async (client) => {
-    // Expire existing active memberships
-    await client.query(
-      `UPDATE memberships SET membership_status = 'EXPIRED', updated_at = NOW()
-       WHERE member_id = $1 AND membership_status IN ('ACTIVE', 'FROZEN')`,
-      [pr.member_id]
-    );
+    let targetMembership = null;
 
-    // Create new active membership
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + pr.duration_months);
+    // Check if membership already exists via activated_membership_id
+    if (pr.activated_membership_id) {
+      const { rows: existingMb } = await client.query(
+        `SELECT * FROM memberships WHERE id = $1`,
+        [pr.activated_membership_id]
+      );
+      if (existingMb.length > 0) {
+        const { rows: updatedMb } = await client.query(
+          `UPDATE memberships SET membership_status = 'ACTIVE', payment_status = 'PAID', updated_at = NOW()
+           WHERE id = $1 RETURNING *`,
+          [pr.activated_membership_id]
+        );
+        targetMembership = updatedMb[0];
+      }
+    }
 
-    const { rows: mbRows } = await client.query(
-      `INSERT INTO memberships (member_id, plan_id, start_date, end_date, price_paid, payment_status, membership_status)
-       VALUES ($1, $2, $3, $4, $5, 'PAID', 'ACTIVE')
-       RETURNING *`,
-      [pr.member_id, pr.plan_id, startDate, endDate, pr.amount]
-    );
+    // If no existing active/pending membership, create new active membership
+    if (!targetMembership) {
+      await client.query(
+        `UPDATE memberships SET membership_status = 'EXPIRED', updated_at = NOW()
+         WHERE member_id = $1 AND membership_status IN ('ACTIVE', 'FROZEN')`,
+        [pr.member_id]
+      );
 
-    const newMembership = mbRows[0];
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + (Number(pr.duration_months) || 1));
+
+      const { rows: mbRows } = await client.query(
+        `INSERT INTO memberships (member_id, plan_id, start_date, end_date, price_paid, payment_status, membership_status)
+         VALUES ($1, $2, $3, $4, $5, 'PAID', 'ACTIVE')
+         RETURNING *`,
+        [pr.member_id, pr.plan_id, startDate, endDate, pr.amount]
+      );
+      targetMembership = mbRows[0];
+    }
+
     const invoiceNumber = generateInvoiceNumber();
 
-    // Record payment entry
-    await client.query(
-      `INSERT INTO payments (member_id, membership_id, amount, payment_method, invoice_number, status, payment_date, notes)
-       VALUES ($1, $2, $3, $4, $5, 'SUCCESS', NOW(), $6)`,
-      [
-        pr.member_id,
-        newMembership.id,
-        pr.amount,
-        paymentMethod,
-        invoiceNumber,
-        isCash ? 'Cash collected and verified at reception' : `UTR: ${pr.utr_number}`
-      ]
+    // Check if there is an existing pending payment for this membership or member to avoid duplication
+    let paymentRecord = null;
+    const { rows: existingPayments } = await client.query(
+      `SELECT * FROM payments WHERE (membership_id = $1 OR member_id = $2) AND status = 'PENDING'
+       ORDER BY id DESC LIMIT 1`,
+      [targetMembership.id, pr.member_id]
     );
+
+    if (existingPayments.length > 0) {
+      const { rows: updatedP } = await client.query(
+        `UPDATE payments SET
+           status = 'SUCCESS',
+           payment_date = NOW(),
+           payment_method = $1,
+           membership_id = $2,
+           notes = $3,
+           updated_at = NOW()
+         WHERE id = $4 RETURNING *`,
+        [
+          paymentMethod,
+          targetMembership.id,
+          isCash ? 'Cash collected and verified at reception' : `UTR: ${pr.utr_number}`,
+          existingPayments[0].id
+        ]
+      );
+      paymentRecord = updatedP[0];
+    } else {
+      const { rows: newP } = await client.query(
+        `INSERT INTO payments (member_id, membership_id, amount, payment_method, invoice_number, status, payment_date, notes)
+         VALUES ($1, $2, $3, $4, $5, 'SUCCESS', NOW(), $6)
+         RETURNING *`,
+        [
+          pr.member_id,
+          targetMembership.id,
+          pr.amount,
+          paymentMethod,
+          invoiceNumber,
+          isCash ? 'Cash collected and verified at reception' : `UTR: ${pr.utr_number}`
+        ]
+      );
+      paymentRecord = newP[0];
+    }
 
     // Update member status to ACTIVE
     await client.query(
@@ -199,7 +263,7 @@ async function verifyPaymentRequest(req, res) {
          status = 'VERIFIED', verified_at = NOW(), verified_by = $1,
          activated_membership_id = $2, updated_at = NOW()
        WHERE id = $3 RETURNING *`,
-      [ownerId, newMembership.id, id]
+      [ownerId, targetMembership.id, requestId]
     );
 
     // Update any matching registration record to COMPLETED
@@ -210,7 +274,7 @@ async function verifyPaymentRequest(req, res) {
       );
     } catch (_) {}
 
-    return { request: updatedReq[0], membership: newMembership, invoice: invoiceNumber };
+    return { request: updatedReq[0], membership: targetMembership, payment: paymentRecord, invoice: invoiceNumber };
   });
 
   try {
@@ -218,22 +282,38 @@ async function verifyPaymentRequest(req, res) {
     markRegistrationPaid(pr.member_id);
   } catch (_) {}
 
-  logger.info(`Payment Request Verified: request_id=${id}, member_id=${pr.member_id}, method=${paymentMethod}`);
+  logger.info(`Payment Request Verified: request_id=${requestId}, member_id=${pr.member_id}, method=${paymentMethod}`);
   return successResponse(res, `Payment verified! Membership activated until ${result.membership.end_date}`, result);
 }
 
 // POST /api/payment-requests/:id/reject  (OWNER)
 async function rejectPaymentRequest(req, res) {
   const { id } = req.params;
-  const ownerId = req.user.id;
-  const { rejection_reason } = req.body;
+  const ownerId = req.user ? req.user.id : null;
+  const { rejection_reason } = req.body || {};
 
-  const { rows: reqRows } = await query(`SELECT * FROM payment_requests WHERE id = $1`, [id]);
+  let reqRows = [];
+  if (/^\d+$/.test(String(id))) {
+    const r = await query(`SELECT * FROM payment_requests WHERE id = $1`, [parseInt(id, 10)]);
+    reqRows = r.rows;
+  }
+  if (reqRows.length === 0) {
+    const r = await query(
+      `SELECT pr.* FROM payment_requests pr
+       INNER JOIN members m ON m.id = pr.member_id
+       WHERE pr.utr_number = $1 OR m.registration_id = $1`,
+      [String(id)]
+    );
+    reqRows = r.rows;
+  }
+
   if (reqRows.length === 0) {
     return errorResponse(res, 'Payment request not found.', null, 404);
   }
-  if (reqRows[0].status !== 'PENDING' && reqRows[0].status !== 'PENDING_CASH') {
-    return errorResponse(res, `This request is already ${reqRows[0].status}.`, null, 409);
+
+  const pr = reqRows[0];
+  if (pr.status !== 'PENDING' && pr.status !== 'PENDING_CASH') {
+    return errorResponse(res, `This request is already ${pr.status}.`, null, 409);
   }
 
   const { rows } = await query(
@@ -241,10 +321,32 @@ async function rejectPaymentRequest(req, res) {
        status = 'REJECTED', verified_at = NOW(), verified_by = $1,
        rejection_reason = $2, updated_at = NOW()
      WHERE id = $3 RETURNING *`,
-    [ownerId, rejection_reason || 'Payment could not be verified.', id]
+    [ownerId, rejection_reason || 'Payment could not be verified.', pr.id]
   );
 
-  logger.info(`Payment Request Rejected: request_id=${id}, reason=${rejection_reason}`);
+  // If there was an associated membership or payment, update them
+  if (pr.activated_membership_id) {
+    try {
+      await query(
+        `UPDATE memberships SET membership_status = 'CANCELLED', payment_status = 'FAILED', updated_at = NOW()
+         WHERE id = $1`,
+        [pr.activated_membership_id]
+      );
+      await query(
+        `UPDATE payments SET status = 'FAILED', updated_at = NOW()
+         WHERE membership_id = $1 AND status = 'PENDING'`,
+        [pr.activated_membership_id]
+      );
+    } catch (_) {}
+  }
+  try {
+    await query(
+      `UPDATE registrations SET status = 'REJECTED', updated_at = NOW() WHERE member_id = $1`,
+      [pr.member_id]
+    );
+  } catch (_) {}
+
+  logger.info(`Payment Request Rejected: request_id=${pr.id}, reason=${rejection_reason}`);
   return successResponse(res, 'Payment request rejected.', rows[0]);
 }
 

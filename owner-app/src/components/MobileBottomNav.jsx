@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Users, CreditCard, Clock, Grid
 } from 'lucide-react';
 
-const SUB_MODULES = ['plans', 'trainers', 'workouts', 'leads', 'broadcast', 'reports', 'settings'];
+const SUB_MODULES = ['plans', 'trainers', 'workouts', 'leads', 'broadcast', 'reports',
+  'settings', 'feedback', 'complaints', 'payment-qr', 'gym-media'];
 
 export default function MobileBottomNav({ activeTab, setActiveTab }) {
   const isMoreActive = activeTab === 'more' || SUB_MODULES.includes(activeTab);
@@ -23,10 +24,9 @@ export default function MobileBottomNav({ activeTab, setActiveTab }) {
       left: 0,
       right: 0,
       zIndex: 1000,
-      background: 'rgba(11, 15, 23, 0.96)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderTop: '1px solid rgba(245, 158, 11, 0.25)',
+      background: '#FFFFFF',
+      borderTop: '1px solid #DCEBFA',
+      boxShadow: '0 -2px 10px rgba(77, 166, 255, 0.08)',
       paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
       paddingTop: '6px',
       display: 'flex',
@@ -34,11 +34,12 @@ export default function MobileBottomNav({ activeTab, setActiveTab }) {
       justifyContent: 'space-around',
       height: '60px',
       boxSizing: 'content-box',
-      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.6)'
     }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const active = tab.isActive;
+        const ACTIVE_COLOR = '#4DA6FF';
+        const INACTIVE_COLOR = '#9CA3AF';
 
         return (
           <button
@@ -55,9 +56,9 @@ export default function MobileBottomNav({ activeTab, setActiveTab }) {
               border: 'none',
               cursor: 'pointer',
               padding: '4px 0',
-              color: active ? '#F59E0B' : '#94A3B8',
+              color: active ? ACTIVE_COLOR : INACTIVE_COLOR,
               transition: 'all 0.15s ease',
-              position: 'relative'
+              position: 'relative',
             }}
           >
             <div style={{
@@ -67,30 +68,35 @@ export default function MobileBottomNav({ activeTab, setActiveTab }) {
               width: '40px',
               height: '28px',
               borderRadius: '999px',
-              background: active ? 'rgba(245, 158, 11, 0.16)' : 'transparent',
-              transition: 'all 0.2s ease'
+              background: active ? 'rgba(77, 166, 255, 0.12)' : 'transparent',
+              transition: 'all 0.2s ease',
             }}>
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} color={active ? '#F59E0B' : '#94A3B8'} />
+              <Icon
+                size={20}
+                strokeWidth={active ? 2.5 : 1.8}
+                color={active ? ACTIVE_COLOR : INACTIVE_COLOR}
+              />
             </div>
 
             <span style={{
-              fontSize: '0.675rem',
+              fontSize: '0.66rem',
               fontWeight: active ? 800 : 500,
               letterSpacing: '0.01em',
-              lineHeight: 1
+              lineHeight: 1,
+              color: active ? ACTIVE_COLOR : INACTIVE_COLOR,
             }}>
               {tab.label}
             </span>
 
+            {/* Active top-indicator pill */}
             {active && (
               <div style={{
                 position: 'absolute',
                 top: 0,
-                width: '16px',
-                height: '2px',
-                background: '#F59E0B',
+                width: '18px',
+                height: '2.5px',
+                background: ACTIVE_COLOR,
                 borderRadius: '999px',
-                boxShadow: '0 0 8px #F59E0B'
               }} />
             )}
           </button>

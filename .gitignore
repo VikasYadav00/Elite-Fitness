@@ -35,3 +35,6 @@ data/
 *.sqlite
 *.sqlite-*
 *.db
+
+# Temporary & scratch
+scratch/

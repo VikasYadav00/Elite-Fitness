@@ -516,23 +516,24 @@ export default function FeedbackReviewsView() {
       {toastMessage && (
         <div style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 9999,
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: '1.5px solid #F59E0B',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA',
           borderRadius: '12px',
-          padding: '12px 18px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+          padding: '12px 20px',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           fontSize: '0.85rem',
-          color: '#F9FAFB',
+          color: '#1F2937',
           fontWeight: 700,
           whiteSpace: 'pre-line'
         }}>
-          <Sparkles size={18} color="#F59E0B" />
+          <Sparkles size={18} color="#4DA6FF" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -551,18 +552,19 @@ export default function FeedbackReviewsView() {
       {/* Top Banner */}
       <div className="glass-card" style={{
         padding: '24px',
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.9))',
-        border: '1px solid rgba(245, 158, 11, 0.3)'
+        background: '#FFFFFF',
+        border: '1px solid #DCEBFA',
+        boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px' }}>
-              <Star size={14} fill="#F59E0B" /> CUSTOMER REVIEWS & FEEDBACK
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: '#EAF5FF', color: '#0284C7', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px' }}>
+              <Star size={14} fill="#0284C7" /> CUSTOMER REVIEWS & FEEDBACK
             </div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#F9FAFB', margin: '0 0 4px 0' }}>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#1F2937', margin: '0 0 4px 0' }}>
               Member Feedback & Google Lens Standee
             </h2>
-            <p style={{ color: '#9CA3AF', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: '#6B7280', fontSize: '0.85rem', margin: 0 }}>
               Read live feedback submitted by members. Print or share the Google Lens QR standee for gym mirrors & reception desk.
             </p>
           </div>
@@ -579,7 +581,7 @@ export default function FeedbackReviewsView() {
               {loading ? 'Refreshing...' : 'Refresh Reviews'}
             </button>
             {lastUpdated && (
-              <span style={{ fontSize: '0.65rem', color: '#4B5563', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                 Live • updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • auto-refresh 30s
               </span>
@@ -595,52 +597,52 @@ export default function FeedbackReviewsView() {
         gap: '14px'
       }}>
         {/* Overall Rating */}
-        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Star size={24} fill="#F59E0B" />
+        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#FFFBEB', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Star size={24} fill="#D97706" />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Average Rating</div>
-            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#F9FAFB' }}>
-              {avgRating} <span style={{ fontSize: '0.9rem', color: '#F59E0B' }}>★</span>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Average Rating</div>
+            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#1F2937' }}>
+              {avgRating} <span style={{ fontSize: '0.9rem', color: '#D97706' }}>★</span>
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#10B981' }}>{totalCount} Total Reviews</div>
+            <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 600 }}>{totalCount} Total Reviews</div>
           </div>
         </div>
 
         {/* Cleanliness */}
-        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Cleanliness</div>
-            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#10B981' }}>{avgCleanliness} ★</div>
-            <div style={{ fontSize: '0.68rem', color: '#9CA3AF' }}>Gym & Lockers</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Cleanliness</div>
+            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#059669' }}>{avgCleanliness} ★</div>
+            <div style={{ fontSize: '0.68rem', color: '#6B7280' }}>Gym & Lockers</div>
           </div>
         </div>
 
         {/* Equipment */}
-        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#EAF5FF', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ThumbsUp size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Equipment</div>
-            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#38BDF8' }}>{avgEquipment} ★</div>
-            <div style={{ fontSize: '0.68rem', color: '#9CA3AF' }}>Machines & Weights</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Equipment</div>
+            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#0284C7' }}>{avgEquipment} ★</div>
+            <div style={{ fontSize: '0.68rem', color: '#6B7280' }}>Machines & Weights</div>
           </div>
         </div>
 
         {/* Trainers */}
-        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.15)', color: '#EC4899', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#FDF2F8', color: '#DB2777', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <User size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Trainers</div>
-            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#EC4899' }}>{avgTrainer} ★</div>
-            <div style={{ fontSize: '0.68rem', color: '#9CA3AF' }}>Coaching Quality</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Trainers</div>
+            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#DB2777' }}>{avgTrainer} ★</div>
+            <div style={{ fontSize: '0.68rem', color: '#6B7280' }}>Coaching Quality</div>
           </div>
         </div>
       </div>
@@ -657,14 +659,14 @@ export default function FeedbackReviewsView() {
         <div className="glass-card" style={{
           padding: '24px',
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-          border: '2px solid #F59E0B',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.5)'
+          background: '#FFFFFF',
+          border: '1.5px solid #4DA6FF',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.12)'
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
             📱 GOOGLE LENS FEEDBACK STANDEE
           </div>
-          <p style={{ color: '#9CA3AF', fontSize: '0.72rem', margin: '0 0 16px 0' }}>
+          <p style={{ color: '#6B7280', fontSize: '0.72rem', margin: '0 0 16px 0' }}>
             Members scan with Google Lens or any camera to rate the gym
           </p>
 
@@ -674,7 +676,8 @@ export default function FeedbackReviewsView() {
             padding: '16px',
             borderRadius: '18px',
             display: 'inline-block',
-            boxShadow: '0 12px 32px rgba(245, 158, 11, 0.25), 0 0 0 2px rgba(245, 158, 11, 0.35)',
+            border: '2px solid #DCEBFA',
+            boxShadow: '0 8px 20px rgba(77, 166, 255, 0.15)',
             marginBottom: '14px'
           }}>
             <QRCodeSVG
@@ -685,10 +688,10 @@ export default function FeedbackReviewsView() {
             />
           </div>
 
-          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#F8FAFC', marginBottom: '2px' }}>
+          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#1F2937', marginBottom: '2px' }}>
             Elite Fitness Club
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginBottom: '8px' }}>
+          <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '8px' }}>
             Sector 14, Lucknow • Scan to leave a review & suggestion
           </div>
 
@@ -696,9 +699,9 @@ export default function FeedbackReviewsView() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
             margin: '8px 0 16px',
-            padding: '6px 12px', background: 'rgba(56,189,248,0.1)',
-            border: '1px solid rgba(56,189,248,0.3)', borderRadius: '8px',
-            fontSize: '0.7rem', color: '#38BDF8', fontFamily: 'monospace'
+            padding: '6px 12px', background: '#EAF5FF',
+            border: '1px solid #BAE6FD', borderRadius: '8px',
+            fontSize: '0.7rem', color: '#0284C7', fontFamily: 'monospace'
           }}>
             <Wifi size={12} />
             {feedbackUrl}
@@ -829,9 +832,9 @@ export default function FeedbackReviewsView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
           {/* Filter Bar */}
-          <div className="glass-card" style={{ padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="glass-card" style={{ padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'space-between', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#9CA3AF', marginRight: '4px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6B7280', marginRight: '4px' }}>
                 <Filter size={12} style={{ display: 'inline', marginRight: '4px' }} /> Rating:
               </span>
 
@@ -845,9 +848,9 @@ export default function FeedbackReviewsView() {
                     borderRadius: '8px',
                     fontSize: '0.72rem',
                     fontWeight: 700,
-                    border: starFilter === st ? '1px solid #F59E0B' : '1px solid rgba(255,255,255,0.1)',
-                    background: starFilter === st ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.03)',
-                    color: starFilter === st ? '#F59E0B' : '#9CA3AF',
+                    border: starFilter === st ? '1px solid #4DA6FF' : '1px solid #DCEBFA',
+                    background: starFilter === st ? '#EAF5FF' : '#FFFFFF',
+                    color: starFilter === st ? '#0284C7' : '#6B7280',
                     cursor: 'pointer'
                   }}
                 >
@@ -856,17 +859,17 @@ export default function FeedbackReviewsView() {
               ))}
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+            <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>
               Showing {filteredFeedbacks.length} of {totalCount}
             </div>
           </div>
 
           {/* List of Reviews */}
           {filteredFeedbacks.length === 0 ? (
-            <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: '#9CA3AF' }}>
-              <MessageSquare size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#F9FAFB' }}>No reviews found for this filter</div>
-              <div style={{ fontSize: '0.75rem', marginTop: '4px' }}>Scan the QR code to submit a new test feedback.</div>
+            <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: '#6B7280', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+              <MessageSquare size={36} style={{ margin: '0 auto 10px', color: '#9CA3AF' }} />
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1F2937' }}>No reviews found for this filter</div>
+              <div style={{ fontSize: '0.75rem', marginTop: '4px', color: '#6B7280' }}>Scan the QR code to submit a new test feedback.</div>
             </div>
           ) : (
             filteredFeedbacks.map(f => {
@@ -879,10 +882,13 @@ export default function FeedbackReviewsView() {
                   className="glass-card"
                   style={{
                     padding: '18px 20px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: '#FFFFFF',
+                    border: '1px solid #DCEBFA',
+                    borderRadius: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
+                    boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -893,9 +899,9 @@ export default function FeedbackReviewsView() {
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(59, 130, 246, 0.2))',
-                        border: '1px solid rgba(245, 158, 11, 0.4)',
-                        color: '#F59E0B',
+                        background: '#EAF5FF',
+                        border: '1px solid #BAE6FD',
+                        color: '#0284C7',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -905,10 +911,10 @@ export default function FeedbackReviewsView() {
                         {f.name ? f.name.charAt(0).toUpperCase() : 'M'}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#F9FAFB' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1F2937' }}>
                           {f.name || 'Gym Member (Anonymous)'}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontSize: '0.7rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {f.phone && <span>📞 {f.phone}</span>}
                           <span>📅 {new Date(f.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
@@ -921,26 +927,26 @@ export default function FeedbackReviewsView() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '2px',
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        background: '#FFFBEB',
+                        border: '1px solid #FDE68A',
                         borderRadius: '999px',
                         padding: '3px 10px',
-                        color: '#F59E0B',
+                        color: '#D97706',
                         fontSize: '0.78rem',
                         fontWeight: 800
                       }}>
                         {[...Array(Number(f.rating) || 5)].map((_, i) => (
-                          <Star key={i} size={13} fill="#F59E0B" />
+                          <Star key={i} size={13} fill="#D97706" />
                         ))}
                       </div>
 
                       {/* Status Badge */}
                       {isAcknowledged ? (
-                        <span style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', fontWeight: 700 }}>
                           ✓ Acknowledged
                         </span>
                       ) : (
-                        <span style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '6px', background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A', fontWeight: 700 }}>
                           ⚡ New Review
                         </span>
                       )}
@@ -948,8 +954,8 @@ export default function FeedbackReviewsView() {
                   </div>
 
                   {/* Category Pill & Detailed Sub-scores */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.7rem', color: '#9CA3AF' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.06)', color: '#E2E8F0', fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.7rem', color: '#6B7280' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#F0F7FF', color: '#0284C7', border: '1px solid #DCEBFA', fontWeight: 700 }}>
                       🏷️ {f.category}
                     </span>
                     <span>• Cleanliness: <strong>{f.cleanliness_rating || 5}★</strong></span>
@@ -960,10 +966,11 @@ export default function FeedbackReviewsView() {
                   {/* Review Comments */}
                   <p style={{
                     fontSize: '0.85rem',
-                    color: '#E2E8F0',
+                    color: '#374151',
                     lineHeight: 1.5,
                     margin: '2px 0 6px 0',
-                    background: 'rgba(0, 0, 0, 0.25)',
+                    background: '#F8FBFF',
+                    border: '1px solid #DCEBFA',
                     padding: '10px 12px',
                     borderRadius: '8px'
                   }}>
@@ -973,12 +980,13 @@ export default function FeedbackReviewsView() {
                   {/* Owner Response / Notes if present */}
                   {f.owner_notes && (
                     <div style={{
-                      background: 'rgba(245, 158, 11, 0.08)',
-                      borderLeft: '3px solid #F59E0B',
+                      background: '#FFFBEB',
+                      borderLeft: '3px solid #D97706',
+                      border: '1px solid #FDE68A',
                       padding: '8px 12px',
                       borderRadius: '0 8px 8px 0',
                       fontSize: '0.78rem',
-                      color: '#FDE68A'
+                      color: '#92400E'
                     }}>
                       <strong>Gym Owner Note:</strong> {f.owner_notes}
                     </div>
@@ -1010,7 +1018,7 @@ export default function FeedbackReviewsView() {
                         </button>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
                         Reviewed & Recorded in System
                       </span>
                     )}
@@ -1021,7 +1029,7 @@ export default function FeedbackReviewsView() {
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#64748B',
+                        color: '#9CA3AF',
                         cursor: 'pointer',
                         padding: '4px',
                         display: 'flex',

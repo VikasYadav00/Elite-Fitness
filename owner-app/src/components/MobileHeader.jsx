@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dumbbell, ArrowLeft, ShieldCheck, Settings, Megaphone, LogOut } from 'lucide-react';
+import { Dumbbell, ArrowLeft, Settings, Megaphone } from 'lucide-react';
 
 const TAB_INFO = {
   dashboard: { title: 'Dashboard', isMain: true },
@@ -13,6 +13,7 @@ const TAB_INFO = {
   workouts: { title: 'Workouts & Diets', isMain: false },
   leads: { title: 'Leads CRM', isMain: false },
   feedback: { title: 'Feedback & Reviews', isMain: false },
+  complaints: { title: 'Complaints & Support', isMain: false },
   broadcast: { title: 'Push & Offers', isMain: false },
   reports: { title: 'Reports & Export', isMain: false },
   'payment-qr': { title: 'UPI Payment QR', isMain: false },
@@ -32,10 +33,9 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
       position: 'sticky',
       top: 0,
       zIndex: 1000,
-      background: 'rgba(11, 15, 23, 0.95)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
+      background: '#FFFFFF',
+      borderBottom: '1px solid #DCEBFA',
+      boxShadow: '0 1px 6px rgba(77, 166, 255, 0.1)',
       paddingTop: 'max(8px, env(safe-area-inset-top))',
       paddingBottom: '8px',
       paddingLeft: '14px',
@@ -52,17 +52,18 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
           <button
             onClick={handleBack}
             style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              background: '#EAF5FF',
+              border: '1px solid #DCEBFA',
               borderRadius: '10px',
               width: '36px',
               height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#F59E0B',
+              color: '#4DA6FF',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              transition: 'background-color 0.15s ease'
             }}
             title="Go back"
             aria-label="Back"
@@ -74,14 +75,14 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
             width: '34px',
             height: '34px',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+            background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
+            boxShadow: '0 2px 8px rgba(77, 166, 255, 0.35)',
           }}>
-            <Dumbbell size={18} color="#000" />
+            <Dumbbell size={18} color="#FFFFFF" />
           </div>
         )}
 
@@ -89,21 +90,22 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
           <h1 style={{
             fontSize: current.isMain ? '1.05rem' : '1.1rem',
             fontWeight: 800,
-            color: '#F9FAFB',
+            color: '#1F2937',
             margin: 0,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            textOverflow: 'ellipsis',
+            fontFamily: 'Outfit, sans-serif',
           }}>
             {current.isMain ? (
-              <>ELITE <span style={{ color: '#F59E0B' }}>FITNESS</span></>
+              <>ELITE <span style={{ color: '#4DA6FF' }}>FITNESS</span></>
             ) : (
               current.title
             )}
           </h1>
           {current.isMain && (
-            <div style={{ fontSize: '0.65rem', color: '#9CA3AF', letterSpacing: '0.06em', fontWeight: 700 }}>
-              {current.title === 'Dashboard' ? 'OWNER PORTAL' : current.title.toUpperCase()}
+            <div style={{ fontSize: '0.62rem', color: '#6B7280', letterSpacing: '0.06em', fontWeight: 700, textTransform: 'uppercase' }}>
+              {current.title === 'Dashboard' ? 'Owner Portal' : current.title}
             </div>
           )}
         </div>
@@ -115,16 +117,17 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
           <button
             onClick={() => setActiveTab('broadcast')}
             style={{
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
+              background: '#EAF5FF',
+              border: '1px solid #DCEBFA',
               borderRadius: '9px',
               width: '36px',
               height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#F59E0B',
-              cursor: 'pointer'
+              color: '#4DA6FF',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s ease'
             }}
             title="Push & Offers"
           >
@@ -135,27 +138,29 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
         <button
           onClick={() => setActiveTab('settings')}
           style={{
-            background: activeTab === 'settings' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: activeTab === 'settings' ? '#EAF5FF' : '#F8FBFF',
+            border: '1px solid #DCEBFA',
             borderRadius: '9px',
             width: '36px',
             height: '36px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: activeTab === 'settings' ? '#F59E0B' : '#9CA3AF',
-            cursor: 'pointer'
+            color: activeTab === 'settings' ? '#4DA6FF' : '#6B7280',
+            cursor: 'pointer',
+            transition: 'background-color 0.15s ease'
           }}
           title="Gym Settings"
         >
           <Settings size={16} />
         </button>
 
+        {/* Live Indicator */}
         <div style={{
-          background: 'rgba(16, 185, 129, 0.12)',
-          color: '#10B981',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
-          padding: '4px 8px',
+          background: '#ECFDF5',
+          color: '#059669',
+          border: '1px solid #A7F3D0',
+          padding: '4px 9px',
           borderRadius: '999px',
           fontSize: '0.68rem',
           fontWeight: 700,
@@ -163,7 +168,11 @@ export default function MobileHeader({ activeTab, setActiveTab, onLogout }) {
           alignItems: 'center',
           gap: '4px'
         }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '999px', background: '#10B981' }} />
+          <span style={{
+            width: '6px', height: '6px', borderRadius: '999px',
+            background: '#059669',
+            animation: 'pulse-dot 2s ease-in-out infinite'
+          }} />
           LIVE
         </div>
       </div>

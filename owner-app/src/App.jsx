@@ -63,12 +63,12 @@ export default function App() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0B0F17',
-      color: '#F9FAFB',
+      background: '#F8FBFF',
+      color: '#1F2937',
       display: 'flex',
       flexDirection: 'column',
       maxWidth: '100vw',
-      overflowX: 'hidden'
+      overflowX: 'hidden',
     }}>
       {/* Native Mobile Top Bar */}
       <MobileHeader

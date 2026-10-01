@@ -48,6 +48,9 @@ const configuredOrigins = [
   process.env.QR_WEB_URL,
   process.env.OWNER_APP_URL,
   'https://vikasyadav00.github.io',
+  'https://vikasyadav00.github.io/Elite-Fitness',
+  'https://elite-fitness-backend.onrender.com',
+  'https://elite-fitness-api.loca.lt',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
@@ -78,7 +81,12 @@ const corsOptions = {
     }
 
     // Allow GitHub Pages deployment domains (*.github.io)
-    if (/^https:\/\/[a-zA-Z0-9-]+\.github\.io$/.test(origin)) {
+    if (/^https:\/\/[a-zA-Z0-9-]+\.github\.io$/.test(origin) || origin.endsWith('.github.io')) {
+      return callback(null, true);
+    }
+
+    // Allow Cloud deployment domains (*.onrender.com, *.loca.lt)
+    if (/^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin) || /^https:\/\/[a-zA-Z0-9-]+\.loca\.lt$/.test(origin)) {
       return callback(null, true);
     }
 
@@ -102,7 +110,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Bypass-Tunnel-Reminder', 'Cache-Control', 'Pragma'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400, // 24 hours preflight cache
 };
@@ -110,6 +118,37 @@ const corsOptions = {
 app.use(cors(corsOptions));
 // Handle preflight across all routes
 app.options('*', cors(corsOptions));
+
+// ─── Public Health Check & Service Info (Requirement 4) ──────────────────────
+// Mounted BEFORE rate-limiting so health-checks never get throttled
+const healthCheckHandler = (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    success: true,
+    service: 'Elite Fitness API',
+    environment: process.env.NODE_ENV || 'production',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    uptime: Math.floor(process.uptime()),
+    database: require('./config/database').getActiveEngine()
+  });
+};
+
+app.get('/health', healthCheckHandler);
+app.get('/api/health', healthCheckHandler);
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'Elite Fitness API',
+    environment: process.env.NODE_ENV || 'production',
+    message: 'Elite Fitness Production Backend is operational',
+    endpoints: {
+      health: '/health',
+      apiHealth: '/api/health',
+      apiBase: '/api'
+    }
+  });
+});
 
 // Request logging
 app.use(morgan('combined', {
@@ -126,7 +165,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Global rate limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
@@ -136,22 +175,12 @@ app.use('/api/', globalLimiter);
 // Stricter rate limit for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many authentication attempts, please try again later.' },
 });
 app.use('/api/auth/', authLimiter);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Elite Fitness Backend is running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-  });
-});
 
 // API Routes
 app.use('/api/auth', authRoutes);

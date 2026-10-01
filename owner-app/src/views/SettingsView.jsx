@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Settings, QrCode, Printer, Save, CreditCard, Upload, Check,
   AlertCircle, Sparkles, X, Download, Wifi, Lock, Eye, EyeOff,
-  ShieldCheck, ExternalLink, Share2, CheckCircle2, Activity, Copy, RefreshCw
+  ShieldCheck, ExternalLink, Share2, CheckCircle2, Activity, Copy, RefreshCw,
+  Server, Globe
 } from 'lucide-react';
+import axios from 'axios';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -15,7 +17,8 @@ import {
   getPublicAttendanceUrl,
   getPublicUniversalQrUrl,
   getApiBaseUrl,
-  getFrontendBaseUrl
+  getFrontendBaseUrl,
+  DEFAULT_PRODUCTION_API_URL
 } from '../urlConfig';
 
 // ─── Utility: centralized registration URL ───────────────────────────────────
@@ -283,18 +286,54 @@ export default function SettingsView() {
     }
   }, []);
 
-  // Live Backend Health Check
-  const checkBackendHealth = async () => {
-    setApiHealth({ status: 'checking', message: 'Pinging backend health endpoint...', latency: null });
+  // Live Backend Health Check (Tests Public /health and /api/health)
+  const checkBackendHealth = async (overrideUrl = null) => {
+    const targetUrl = (overrideUrl || getApiBaseUrl()).replace(/\/+$/, '');
+    setApiBaseUrl(targetUrl);
+    setApiHealth({ status: 'checking', message: 'Testing backend connection over HTTPS...', latency: null });
     const start = Date.now();
+
+    try {
+      // 1. Ping /health on backend origin
+      const rootUrl = targetUrl.replace(/\/api\/?$/, '');
+      const healthUrl = `${rootUrl}/health`;
+      const res = await axios.get(healthUrl, {
+        timeout: 6000,
+        headers: { 'Bypass-Tunnel-Reminder': 'true' }
+      });
+      const latency = Date.now() - start;
+      if (res.data?.status === 'ok' || res.data?.success) {
+        setApiHealth({
+          status: 'online',
+          message: `Live & Operational (${res.data.environment || 'production'})`,
+          latency
+        });
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      // 2. Ping /api/health
+      const res = await axios.get(`${targetUrl}/health`, {
+        timeout: 5000,
+        headers: { 'Bypass-Tunnel-Reminder': 'true' }
+      });
+      const latency = Date.now() - start;
+      if (res.data?.status === 'ok' || res.data?.success) {
+        setApiHealth({
+          status: 'online',
+          message: 'Operational & Connected over HTTPS',
+          latency
+        });
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback: try api instance
     try {
       const res = await api.get('/health', { timeout: 4000 });
       const latency = Date.now() - start;
-      if (res.data?.success) {
-        setApiHealth({ status: 'online', message: 'Operational & Connected over HTTPS', latency });
-      } else {
-        setApiHealth({ status: 'online', message: 'Server Active', latency });
-      }
+      setApiHealth({ status: 'online', message: 'Connected to Server', latency });
     } catch (err) {
       setApiHealth({ status: 'offline', message: 'Backend unreachable. Check server status or CORS.', latency: null });
     }
@@ -564,21 +603,22 @@ export default function SettingsView() {
       {/* Toast */}
       {toastMessage && (
         <div style={{
-          position: 'fixed', bottom: '24px', right: '24px',
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: '1px solid #10B981', color: '#F9FAFB',
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA', color: '#1F2937',
           padding: '12px 20px', borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem'
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem',
+          fontWeight: 600
         }}>
-          <Sparkles size={18} color="#10B981" />
+          <Sparkles size={18} color="#4DA6FF" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gym Profile & QR Settings</h2>
-        <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Gym Profile & QR Settings</h2>
+        <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
           Manage gym info, print the registration QR poster for reception, and upload the UPI payment QR for member renewals.
         </p>
       </div>
@@ -587,9 +627,9 @@ export default function SettingsView() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px', alignItems: 'start' }}>
 
         {/* Gym Info Form */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px', color: '#F59E0B' }}>
-            <Settings size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+        <div className="glass-card" style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px', color: '#1F2937' }}>
+            <Settings size={18} color="#4DA6FF" style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
             Gym Profile
           </h3>
 
@@ -652,33 +692,35 @@ export default function SettingsView() {
         {/* Universal QR Standee (The ONE permanent reception standee) */}
         <div className="glass-card" style={{
           padding: '24px', textAlign: 'center',
-          background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-          border: '2px solid #F59E0B',
+          background: '#FFFFFF',
+          border: '1.5px solid #4DA6FF',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.12)',
           position: 'relative',
           overflow: 'hidden'
         }}>
           <div style={{
             position: 'absolute', top: '12px', right: '-32px',
-            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-            color: '#000', fontSize: '0.65rem', fontWeight: 900,
+            background: 'linear-gradient(135deg, #4DA6FF, #0284C7)',
+            color: '#FFFFFF', fontSize: '0.65rem', fontWeight: 900,
             padding: '3px 36px', transform: 'rotate(45deg)',
-            letterSpacing: '0.05em', boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+            letterSpacing: '0.05em', boxShadow: '0 2px 8px rgba(77,166,255,0.4)'
           }}>
             PRIMARY
           </div>
 
-          <h4 style={{ fontSize: '0.9rem', color: '#F59E0B', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+          <h4 style={{ fontSize: '0.9rem', color: '#0284C7', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
             🌟 ONE UNIVERSAL QR CODE
           </h4>
-          <p style={{ color: '#9CA3AF', fontSize: '0.74rem', marginBottom: '14px', lineHeight: 1.4 }}>
+          <p style={{ color: '#6B7280', fontSize: '0.74rem', marginBottom: '14px', lineHeight: 1.4 }}>
             Single permanent QR displayed at gym reception for <strong>all services</strong>
           </p>
 
           {/* QR Code Container */}
           <div style={{
-            background: '#FFF', padding: '16px', borderRadius: '18px',
+            background: '#FFFFFF', padding: '16px', borderRadius: '18px',
             display: 'inline-block', marginBottom: '12px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.6)'
+            border: '2px solid #DCEBFA',
+            boxShadow: '0 8px 20px rgba(77, 166, 255, 0.15)'
           }}>
             <QRCodeSVG value={universalQrUrl} size={165} level="H" />
           </div>
@@ -688,24 +730,24 @@ export default function SettingsView() {
             display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px',
             marginBottom: '14px', textAlign: 'left'
           }}>
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
-              <span style={{ color: '#10B981', fontWeight: 800 }}>🏋️ Attendance</span>
+            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#059669' }}>
+              <span style={{ fontWeight: 800 }}>🏋️ Attendance</span>
             </div>
-            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
-              <span style={{ color: '#F59E0B', fontWeight: 800 }}>📝 Registration</span>
+            <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#D97706' }}>
+              <span style={{ fontWeight: 800 }}>📝 Registration</span>
             </div>
-            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
-              <span style={{ color: '#F59E0B', fontWeight: 800 }}>⭐ Feedback</span>
+            <div style={{ background: '#EAF5FF', border: '1px solid #BAE6FD', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#0284C7' }}>
+              <span style={{ fontWeight: 800 }}>⭐ Feedback</span>
             </div>
-            <div style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#E2E8F0' }}>
-              <span style={{ color: '#38BDF8', fontWeight: 800 }}>📞 Support</span>
+            <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '8px', padding: '6px 8px', fontSize: '0.7rem', color: '#0284C7' }}>
+              <span style={{ fontWeight: 800 }}>📞 Support</span>
             </div>
           </div>
 
-          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#F8FAFC', marginBottom: '2px' }}>
+          <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1F2937', marginBottom: '2px' }}>
             {gym.gym_name}
           </div>
-          <div style={{ fontSize: '0.68rem', color: '#9CA3AF', marginBottom: '4px', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '0.68rem', color: '#6B7280', marginBottom: '4px', lineHeight: 1.4 }}>
             {gym.address}
           </div>
 
@@ -713,9 +755,9 @@ export default function SettingsView() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center',
             margin: '8px 0 14px',
-            padding: '6px 12px', background: 'rgba(245,158,11,0.1)',
-            border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px',
-            fontSize: '0.72rem', color: '#F59E0B', fontFamily: 'monospace', wordBreak: 'break-all'
+            padding: '6px 12px', background: '#EAF5FF',
+            border: '1px solid #BAE6FD', borderRadius: '8px',
+            fontSize: '0.72rem', color: '#0284C7', fontFamily: 'monospace', wordBreak: 'break-all'
           }}>
             <Wifi size={12} />
             {universalQrUrl}
@@ -846,18 +888,19 @@ export default function SettingsView() {
       {/* ─── QR DEPLOYMENT & PRODUCTION VALIDATION HUB (Requirement 17) ────── */}
       <div className="glass-card" style={{
         padding: '24px',
-        border: '1.5px solid rgba(245, 158, 11, 0.4)',
-        background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(11, 15, 23, 0.98))'
+        border: '1px solid #DCEBFA',
+        background: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', borderRadius: '999px', background: '#EAF5FF', color: '#0284C7', fontSize: '0.72rem', fontWeight: 800, marginBottom: '6px' }}>
               <ShieldCheck size={13} /> PRODUCTION DEPLOYMENT & QR AUDIT HUB
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
               Live QR Code Validation & Destination Status
             </h3>
-            <p style={{ color: '#9CA3AF', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+            <p style={{ color: '#6B7280', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
               Verify production URLs, inspect QR endpoints, test direct mobile routing, and regenerate standees.
             </p>
           </div>
@@ -866,7 +909,7 @@ export default function SettingsView() {
             <button
               type="button"
               className="btn-secondary"
-              onClick={checkBackendHealth}
+              onClick={() => checkBackendHealth()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '8px 14px' }}
             >
               <RefreshCw size={14} className={apiHealth.status === 'checking' ? 'animate-spin' : ''} />
@@ -875,40 +918,115 @@ export default function SettingsView() {
           </div>
         </div>
 
-        {/* Live Backend Connection Indicator */}
+        {/* Live Backend Connection Indicator (Requirement 17) */}
         <div style={{
-          padding: '14px 18px',
-          borderRadius: '12px',
-          background: apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.08)' : (apiHealth.status === 'checking' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)'),
-          border: `1px solid ${apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.3)' : (apiHealth.status === 'checking' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)')}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
+          padding: '16px 20px',
+          borderRadius: '14px',
+          background: apiHealth.status === 'online' ? '#ECFDF5' : (apiHealth.status === 'checking' ? '#FFFBEB' : '#FEF2F2'),
+          border: `1.5px solid ${apiHealth.status === 'online' ? '#A7F3D0' : (apiHealth.status === 'checking' ? '#FDE68A' : '#FECACA')}`,
           marginBottom: '20px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '10px', height: '10px', borderRadius: '50%',
-              background: apiHealth.status === 'online' ? '#10B981' : (apiHealth.status === 'checking' ? '#F59E0B' : '#EF4444'),
-              boxShadow: `0 0 10px ${apiHealth.status === 'online' ? '#10B981' : '#F59E0B'}`
-            }} />
-            <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F9FAFB' }}>
-                Backend API: <span style={{ fontFamily: 'monospace', color: '#38BDF8' }}>{apiBaseUrl}</span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: '2px' }}>
-                {apiHealth.message} {apiHealth.latency !== null && `(${apiHealth.latency}ms)`}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '12px', height: '12px', borderRadius: '50%',
+                background: apiHealth.status === 'online' ? '#059669' : (apiHealth.status === 'checking' ? '#D97706' : '#DC2626'),
+                boxShadow: `0 0 10px ${apiHealth.status === 'online' ? '#10B981' : '#F59E0B'}`
+              }} />
+              <div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1F2937' }}>
+                  Backend API: <span style={{ fontFamily: 'monospace', color: '#0284C7' }}>{apiBaseUrl}</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
+                  {apiHealth.message} {apiHealth.latency !== null && `(${apiHealth.latency}ms)`}
+                </div>
               </div>
             </div>
+
+            <div style={{
+              fontSize: '0.78rem', fontWeight: 900, padding: '6px 14px', borderRadius: '8px',
+              background: apiHealth.status === 'online' ? '#059669' : '#DC2626',
+              color: '#FFFFFF',
+              letterSpacing: '0.05em',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              boxShadow: apiHealth.status === 'online' ? '0 2px 8px rgba(5,150,105,0.3)' : '0 2px 8px rgba(220,38,38,0.3)'
+            }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#FFFFFF' }} />
+              {apiHealth.status === 'online' ? 'ONLINE' : (apiHealth.status === 'checking' ? 'CHECKING' : 'OFFLINE')}
+            </div>
           </div>
+
+          {/* Quick Production Endpoint Presets */}
           <div style={{
-            fontSize: '0.72rem', fontWeight: 800, padding: '4px 10px', borderRadius: '6px',
-            background: apiHealth.status === 'online' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-            color: apiHealth.status === 'online' ? '#10B981' : '#F87171'
+            paddingTop: '10px',
+            borderTop: '1px solid rgba(0,0,0,0.06)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
           }}>
-            {apiHealth.status === 'online' ? '🟢 OPERATIONAL' : (apiHealth.status === 'checking' ? '🟡 CHECKING' : '🔴 OFFLINE')}
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280' }}>Switch Endpoint:</span>
+            
+            <button
+              type="button"
+              onClick={() => {
+                const url = 'https://elite-fitness-api.loca.lt/api';
+                localStorage.setItem('elite_fitness_api_url', url);
+                checkBackendHealth(url);
+                showToast('Switched to Live Public HTTPS Tunnel API');
+              }}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
+                background: apiBaseUrl.includes('loca.lt') ? '#0284C7' : '#FFFFFF',
+                color: apiBaseUrl.includes('loca.lt') ? '#FFFFFF' : '#0284C7',
+                border: '1px solid #BAE6FD', cursor: 'pointer'
+              }}
+            >
+              🌐 Live Public Tunnel
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const url = 'https://elite-fitness-backend.onrender.com/api';
+                localStorage.setItem('elite_fitness_api_url', url);
+                checkBackendHealth(url);
+                showToast('Switched to Render Cloud Backend API');
+              }}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
+                background: apiBaseUrl.includes('onrender.com') ? '#0284C7' : '#FFFFFF',
+                color: apiBaseUrl.includes('onrender.com') ? '#FFFFFF' : '#0284C7',
+                border: '1px solid #BAE6FD', cursor: 'pointer'
+              }}
+            >
+              ☁️ Render Cloud
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const url = 'http://localhost:5000/api';
+                localStorage.setItem('elite_fitness_api_url', url);
+                checkBackendHealth(url);
+                showToast('Switched to Local Dev API');
+              }}
+              style={{
+                fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px',
+                background: apiBaseUrl.includes('localhost') ? '#6B7280' : '#FFFFFF',
+                color: apiBaseUrl.includes('localhost') ? '#FFFFFF' : '#6B7280',
+                border: '1px solid #D1D5DB', cursor: 'pointer'
+              }}
+            >
+              💻 Local Dev (5000)
+            </button>
           </div>
         </div>
 
@@ -917,35 +1035,35 @@ export default function SettingsView() {
           
           {/* Universal QR Card (Primary) */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: '2px solid rgba(245, 158, 11, 0.45)',
+            background: '#F8FBFF',
+            border: '1.5px solid #4DA6FF',
             borderRadius: '16px',
             padding: '18px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             position: 'relative',
-            boxShadow: '0 4px 20px rgba(245, 158, 11, 0.1)'
+            boxShadow: '0 2px 8px rgba(77, 166, 255, 0.1)'
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#F59E0B' }}>🌟 UNIVERSAL QR (ALL-IN-ONE)</span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '2px 8px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#0284C7' }}>🌟 UNIVERSAL QR (ALL-IN-ONE)</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 900, padding: '2px 8px', borderRadius: '999px', background: '#EAF5FF', color: '#0284C7', border: '1px solid #BAE6FD' }}>
                   PRIMARY RECEPTION
                 </span>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '6px' }}>Encoded Public Destination:</div>
               <div style={{
-                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                fontFamily: 'monospace', fontSize: '0.72rem', color: '#F59E0B',
+                background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid #DCEBFA',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#0284C7',
                 wordBreak: 'break-all', marginBottom: '10px'
               }}>
                 {universalQrUrl}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280', marginBottom: '14px' }}>
                 <span>Route: <strong>/qr</strong></span>
                 <span>Services: <strong>4 in 1</strong></span>
               </div>
@@ -957,7 +1075,7 @@ export default function SettingsView() {
                 target="_blank"
                 rel="noreferrer"
                 className="btn-secondary"
-                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#F59E0B' }}
+                style={{ textAlign: 'center', textDecoration: 'none', fontSize: '0.75rem', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
               >
                 <ExternalLink size={12} /> Test Link
               </a>
@@ -977,8 +1095,8 @@ export default function SettingsView() {
 
           {/* Feedback QR Card */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
+            background: '#F8FBFF',
+            border: '1px solid #DCEBFA',
             borderRadius: '16px',
             padding: '18px',
             display: 'flex',
@@ -987,23 +1105,23 @@ export default function SettingsView() {
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F59E0B' }}>⭐ FEEDBACK QR</span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#D97706' }}>⭐ FEEDBACK QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0' }}>
                   ACTIVE
                 </span>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '6px' }}>Encoded Public Destination:</div>
               <div style={{
-                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                fontFamily: 'monospace', fontSize: '0.72rem', color: '#38BDF8',
+                background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid #DCEBFA',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#0284C7',
                 wordBreak: 'break-all', marginBottom: '10px'
               }}>
                 {feedbackQrUrl}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280', marginBottom: '14px' }}>
                 <span>Route: <strong>/feedback</strong></span>
                 <span>Last Generated: <strong>{lastGeneratedTime}</strong></span>
               </div>
@@ -1035,8 +1153,8 @@ export default function SettingsView() {
 
           {/* Registration QR Card */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
+            background: '#F8FBFF',
+            border: '1px solid #DCEBFA',
             borderRadius: '16px',
             padding: '18px',
             display: 'flex',
@@ -1045,23 +1163,23 @@ export default function SettingsView() {
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#10B981' }}>🏋️ REGISTRATION QR</span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#059669' }}>🏋️ REGISTRATION QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0' }}>
                   ACTIVE
                 </span>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '6px' }}>Encoded Public Destination:</div>
               <div style={{
-                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                fontFamily: 'monospace', fontSize: '0.72rem', color: '#10B981',
+                background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid #DCEBFA',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#059669',
                 wordBreak: 'break-all', marginBottom: '10px'
               }}>
                 {regUrl}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280', marginBottom: '14px' }}>
                 <span>Route: <strong>/register</strong></span>
                 <span>Last Generated: <strong>{lastGeneratedTime}</strong></span>
               </div>
@@ -1093,8 +1211,8 @@ export default function SettingsView() {
 
           {/* Table Attendance QR Card */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
+            background: '#F8FBFF',
+            border: '1px solid #DCEBFA',
             borderRadius: '16px',
             padding: '18px',
             display: 'flex',
@@ -1103,23 +1221,23 @@ export default function SettingsView() {
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#38BDF8' }}>🔵 TABLE ATTENDANCE QR</span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0284C7' }}>🔵 TABLE ATTENDANCE QR</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: '#EAF5FF', color: '#0284C7', border: '1px solid #BAE6FD' }}>
                   ACTIVE
                 </span>
               </div>
 
-              <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '6px' }}>Encoded Public Destination:</div>
+              <div style={{ fontSize: '0.72rem', color: '#6B7280', marginBottom: '6px' }}>Encoded Public Destination:</div>
               <div style={{
-                background: '#0B0F17', padding: '8px 10px', borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                fontFamily: 'monospace', fontSize: '0.72rem', color: '#38BDF8',
+                background: '#FFFFFF', padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid #DCEBFA',
+                fontFamily: 'monospace', fontSize: '0.72rem', color: '#0284C7',
                 wordBreak: 'break-all', marginBottom: '10px'
               }}>
                 {attendanceQrUrl}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280', marginBottom: '14px' }}>
                 <span>Route: <strong>/checkin</strong></span>
                 <span>Type: <strong>Table Scan</strong></span>
               </div>
@@ -1152,15 +1270,15 @@ export default function SettingsView() {
 
         {/* Global Production Domain Switcher */}
         <div style={{
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: '#F0F7FF',
+          border: '1px solid #DCEBFA',
           borderRadius: '12px',
           padding: '16px'
         }}>
-          <h4 style={{ fontSize: '0.85rem', color: '#F59E0B', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Wifi size={14} /> Synchronize All QR Codes to a Production Domain
+          <h4 style={{ fontSize: '0.85rem', color: '#1F2937', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
+            <Wifi size={14} color="#4DA6FF" /> Synchronize All QR Codes to a Production Domain
           </h4>
-          <p style={{ color: '#9CA3AF', fontSize: '0.75rem', margin: '0 0 12px 0' }}>
+          <p style={{ color: '#6B7280', fontSize: '0.75rem', margin: '0 0 12px 0' }}>
             If you change your GitHub Pages repository name or switch to a custom domain (e.g. <code>https://gym.elitefitness.com</code>), enter it below to update Universal QR, Feedback, Registration, and Attendance QR codes at once.
           </p>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -1202,26 +1320,27 @@ export default function SettingsView() {
       {/* ─── Change Password Section ─────────────────────────────────────────── */}
       <div className="glass-card" style={{
         padding: '24px',
-        border: '1px solid rgba(139, 92, 246, 0.35)',
-        background: 'linear-gradient(135deg, rgba(17,24,39,0.95), rgba(30,20,60,0.85))'
+        border: '1px solid #DCEBFA',
+        background: '#FFFFFF',
+        boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-          <ShieldCheck size={20} color="#8B5CF6" />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#A78BFA' }}>Change Password</h3>
+          <ShieldCheck size={20} color="#4DA6FF" />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1F2937' }}>Change Password</h3>
         </div>
-        <p style={{ color: '#9CA3AF', fontSize: '0.83rem', marginBottom: '24px' }}>
+        <p style={{ color: '#6B7280', fontSize: '0.83rem', marginBottom: '24px' }}>
           Update your owner account password. Make sure it meets all security requirements.
         </p>
 
         {pwdError && (
           <div style={{
             padding: '12px 14px', borderRadius: '12px',
-            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-            color: '#FCA5A5', fontSize: '0.82rem',
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            color: '#DC2626', fontSize: '0.82rem',
             display: 'flex', alignItems: 'flex-start', gap: '10px',
             marginBottom: '18px', lineHeight: 1.4
           }}>
-            <AlertCircle size={18} color="#EF4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <AlertCircle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
             <span>{pwdError}</span>
           </div>
         )}
@@ -1229,12 +1348,12 @@ export default function SettingsView() {
         {pwdSuccess && (
           <div style={{
             padding: '12px 14px', borderRadius: '12px',
-            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
-            color: '#6EE7B7', fontSize: '0.82rem',
+            background: '#ECFDF5', border: '1px solid #A7F3D0',
+            color: '#059669', fontSize: '0.82rem',
             display: 'flex', alignItems: 'center', gap: '10px',
             marginBottom: '18px'
           }}>
-            <Check size={18} color="#10B981" /> Password changed successfully!
+            <Check size={18} color="#059669" /> Password changed successfully!
           </div>
         )}
 
@@ -1284,10 +1403,10 @@ export default function SettingsView() {
               return (
                 <div style={{ marginTop: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Password Strength</span>
+                    <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>Password Strength</span>
                     <span style={{ fontSize: '0.72rem', fontWeight: 700, color: s.color }}>{s.label}</span>
                   </div>
-                  <div style={{ height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.08)' }}>
+                  <div style={{ height: '4px', borderRadius: '999px', background: '#E5E7EB' }}>
                     <div style={{ height: '100%', borderRadius: '999px', background: s.color, width: s.width, transition: 'width 0.3s ease, background 0.3s ease' }} />
                   </div>
                 </div>
@@ -1297,10 +1416,10 @@ export default function SettingsView() {
             {/* Requirements checklist */}
             <div style={{
               marginTop: '12px', padding: '14px',
-              background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)',
+              background: '#F8FBFF', border: '1px solid #DCEBFA',
               borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px'
             }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#A78BFA', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1F2937', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Password Must Contain
               </div>
               {pwdRules.map(rule => {
@@ -1310,13 +1429,13 @@ export default function SettingsView() {
                     <div style={{
                       width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: passed ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${passed ? '#10B981' : 'rgba(255,255,255,0.12)'}`,
+                      background: passed ? '#ECFDF5' : '#F3F4F6',
+                      border: `1px solid ${passed ? '#059669' : '#D1D5DB'}`,
                       transition: 'all 0.2s ease'
                     }}>
-                      {passed && <Check size={11} color="#10B981" strokeWidth={3} />}
+                      {passed && <Check size={11} color="#059669" strokeWidth={3} />}
                     </div>
-                    <span style={{ color: passed ? '#6EE7B7' : '#9CA3AF', transition: 'color 0.2s' }}>{rule.label}</span>
+                    <span style={{ color: passed ? '#059669' : '#6B7280', transition: 'color 0.2s' }}>{rule.label}</span>
                   </div>
                 );
               })}
@@ -1338,8 +1457,8 @@ export default function SettingsView() {
                   paddingLeft: '38px', paddingRight: '40px',
                   borderColor: pwdForm.confirm
                     ? pwdForm.confirm === pwdForm.newPwd
-                      ? 'rgba(16,185,129,0.6)'
-                      : 'rgba(239,68,68,0.5)'
+                      ? '#059669'
+                      : '#DC2626'
                     : undefined
                 }}
               />
@@ -1349,10 +1468,10 @@ export default function SettingsView() {
               </button>
             </div>
             {pwdForm.confirm && pwdForm.confirm !== pwdForm.newPwd && (
-              <p style={{ fontSize: '0.75rem', color: '#F87171', marginTop: '5px' }}>Passwords do not match</p>
+              <p style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '5px' }}>Passwords do not match</p>
             )}
             {pwdForm.confirm && pwdForm.confirm === pwdForm.newPwd && pwdForm.newPwd && (
-              <p style={{ fontSize: '0.75rem', color: '#6EE7B7', marginTop: '5px' }}>✓ Passwords match</p>
+              <p style={{ fontSize: '0.75rem', color: '#059669', marginTop: '5px' }}>✓ Passwords match</p>
             )}
           </div>
 
@@ -1363,7 +1482,6 @@ export default function SettingsView() {
             style={{
               alignSelf: 'flex-start',
               padding: '12px 28px',
-              background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
               display: 'flex', alignItems: 'center', gap: '8px'
             }}
           >

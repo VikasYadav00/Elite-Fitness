@@ -46,18 +46,19 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(77, 166, 255, 0.35)'
             }}>
-              <GymIcon size={16} color="#000" />
+              <GymIcon size={16} color="#FFFFFF" />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#F9FAFB', lineHeight: 1 }}>
-                NAVIGATION <span style={{ color: '#F59E0B' }}>MENU</span>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1F2937', lineHeight: 1 }}>
+                NAVIGATION <span style={{ color: '#4DA6FF' }}>MENU</span>
               </div>
-              <span style={{ fontSize: '0.65rem', color: '#9CA3AF' }}>SELECT MODULE</span>
+              <span style={{ fontSize: '0.65rem', color: '#6B7280' }}>SELECT MODULE</span>
             </div>
           </div>
 
@@ -86,7 +87,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                   <Icon
                     size={20}
-                    color={isActive ? '#F59E0B' : '#9CA3AF'}
+                    color={isActive ? '#4DA6FF' : '#9CA3AF'}
                     style={{ flexShrink: 0 }}
                   />
                   <span style={{
@@ -104,8 +105,8 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
                     fontWeight: 800,
                     padding: '2px 6px',
                     borderRadius: '999px',
-                    background: isActive ? '#F59E0B' : 'rgba(245, 158, 11, 0.15)',
-                    color: isActive ? '#000' : '#F59E0B',
+                    background: isActive ? '#4DA6FF' : '#EAF5FF',
+                    color: isActive ? '#FFFFFF' : '#0284C7',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
                   }}>
@@ -120,7 +121,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, onClose }) {
         {/* Sidebar Footer */}
         <div style={{
           padding: '14px 16px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: '1px solid #DCEBFA',
           marginTop: 'auto',
           fontSize: '0.72rem',
           color: '#6B7280',

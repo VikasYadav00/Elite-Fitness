@@ -196,15 +196,14 @@ export default function GymMediaMapView() {
           top: '20px',
           right: '20px',
           zIndex: 9999,
-          background: 'rgba(17, 24, 39, 0.96)',
-          border: '1px solid #10B981',
-          color: '#10B981',
+          background: '#FFFFFF',
+          border: '1.5px solid #10B981',
+          color: '#065F46',
           padding: '12px 20px',
           borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          boxShadow: '0 10px 30px rgba(16, 185, 129, 0.15)',
           fontSize: '0.9rem',
           fontWeight: 600,
-          backdropFilter: 'blur(8px)'
         }}>
           {toast}
         </div>
@@ -213,8 +212,9 @@ export default function GymMediaMapView() {
       {/* Header Banner */}
       <div className="glass-card" style={{
         padding: '22px',
-        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(17, 24, 39, 0.95) 100%)',
-        border: '1px solid rgba(245, 158, 11, 0.35)',
+        background: 'linear-gradient(135deg, #EBF5FF 0%, #FFFFFF 100%)',
+        border: '1px solid #DCEBFA',
+        boxShadow: '0 2px 12px rgba(77, 166, 255, 0.08)',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px'
@@ -225,19 +225,19 @@ export default function GymMediaMapView() {
               width: '46px',
               height: '46px',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(245, 158, 11, 0.35)'
+              boxShadow: '0 4px 16px rgba(77, 166, 255, 0.35)'
             }}>
-              <MapPin size={24} color="#000" />
+              <MapPin size={24} color="#FFFFFF" />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
                 Gym Media & Google Maps Listing
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: 0 }}>
+              <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>
                 Upload photos & video tour clips shown when customers search your gym on Google Maps
               </p>
             </div>
@@ -245,9 +245,9 @@ export default function GymMediaMapView() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10B981',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              background: '#ECFDF5',
+              color: '#059669',
+              border: '1px solid #A7F3D0',
               padding: '6px 12px',
               borderRadius: '20px',
               fontSize: '0.75rem',
@@ -256,7 +256,7 @@ export default function GymMediaMapView() {
               alignItems: 'center',
               gap: '6px'
             }}>
-              <Star size={14} fill="#10B981" color="#10B981" /> 4.9 • 184 Reviews on Maps
+              <Star size={14} fill="#059669" color="#059669" /> 4.9 • 184 Reviews on Maps
             </span>
           </div>
         </div>
@@ -277,13 +277,13 @@ export default function GymMediaMapView() {
                 borderRadius: '10px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                border: 'none',
+                border: activeTab === tab.id ? '1px solid #4DA6FF' : '1px solid #DCEBFA',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s ease',
-                background: activeTab === tab.id ? 'linear-gradient(135deg, #F59E0B, #D97706)' : 'rgba(255, 255, 255, 0.06)',
-                color: activeTab === tab.id ? '#000000' : '#D1D5DB',
-                boxShadow: activeTab === tab.id ? '0 4px 14px rgba(245, 158, 11, 0.3)' : 'none'
+                background: activeTab === tab.id ? 'linear-gradient(135deg, #4DA6FF, #2E8FE8)' : '#FFFFFF',
+                color: activeTab === tab.id ? '#FFFFFF' : '#4B5563',
+                boxShadow: activeTab === tab.id ? '0 4px 14px rgba(77, 166, 255, 0.3)' : '0 1px 3px rgba(0,0,0,0.03)'
               }}
             >
               {tab.label} {tab.count !== null ? `(${tab.count})` : ''}
@@ -298,8 +298,8 @@ export default function GymMediaMapView() {
           {/* Upload Box */}
           <div className="glass-card" style={{
             padding: '24px',
-            border: '2px dashed rgba(245, 158, 11, 0.4)',
-            background: 'rgba(245, 158, 11, 0.03)',
+            border: '2px dashed #93C5FD',
+            background: '#F8FBFF',
             borderRadius: '18px',
             textAlign: 'center',
             cursor: 'pointer',
@@ -319,8 +319,9 @@ export default function GymMediaMapView() {
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              background: 'rgba(245, 158, 11, 0.15)',
-              color: '#F59E0B',
+              background: '#EAF5FF',
+              color: '#4DA6FF',
+              border: '1px solid #DCEBFA',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -328,10 +329,10 @@ export default function GymMediaMapView() {
             }}>
               <Upload size={26} />
             </div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F9FAFB', margin: '0 0 6px' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1F2937', margin: '0 0 6px' }}>
               Upload Gym Photos
             </h4>
-            <p style={{ fontSize: '0.82rem', color: '#9CA3AF', margin: '0 0 14px' }}>
+            <p style={{ fontSize: '0.82rem', color: '#6B7280', margin: '0 0 14px' }}>
               High-resolution photos of Workout Area, Cardio, Dumbbell Rack, Locker & Reception
             </p>
             <button
@@ -357,12 +358,14 @@ export default function GymMediaMapView() {
                 style={{
                   overflow: 'hidden',
                   borderRadius: '16px',
-                  border: photo.isCover ? '2px solid #F59E0B' : '1px solid rgba(255,255,255,0.08)',
+                  background: '#FFFFFF',
+                  border: photo.isCover ? '2px solid #4DA6FF' : '1px solid #DCEBFA',
+                  boxShadow: '0 2px 8px rgba(77, 166, 255, 0.08)',
                   display: 'flex',
                   flexDirection: 'column'
                 }}
               >
-                <div style={{ position: 'relative', width: '100%', height: '170px', background: '#000' }}>
+                <div style={{ position: 'relative', width: '100%', height: '170px', background: '#F0F7FF' }}>
                   <img
                     src={photo.url}
                     alt={photo.title}
@@ -373,8 +376,8 @@ export default function GymMediaMapView() {
                       position: 'absolute',
                       top: '10px',
                       left: '10px',
-                      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                      color: '#000',
+                      background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
+                      color: '#FFFFFF',
                       padding: '4px 10px',
                       borderRadius: '8px',
                       fontSize: '0.72rem',
@@ -382,26 +385,26 @@ export default function GymMediaMapView() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                      boxShadow: '0 4px 12px rgba(77, 166, 255, 0.4)'
                     }}>
-                      <Star size={12} fill="#000" /> Primary Cover Photo
+                      <Star size={12} fill="#FFFFFF" /> Primary Cover Photo
                     </span>
                   )}
                 </div>
 
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F3F4F6' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1F2937' }}>
                     {photo.title}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #F0F7FF' }}>
                     {!photo.isCover ? (
                       <button
                         onClick={() => handleSetCover(photo.id)}
                         style={{
-                          background: 'rgba(245, 158, 11, 0.1)',
-                          border: '1px solid rgba(245, 158, 11, 0.3)',
-                          color: '#F59E0B',
+                          background: '#EAF5FF',
+                          border: '1px solid #DCEBFA',
+                          color: '#0284C7',
                           padding: '5px 10px',
                           borderRadius: '8px',
                           fontSize: '0.75rem',
@@ -412,7 +415,7 @@ export default function GymMediaMapView() {
                         Set as Cover
                       </button>
                     ) : (
-                      <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700 }}>
+                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
                         ✓ Google Maps Cover
                       </span>
                     )}
@@ -420,9 +423,9 @@ export default function GymMediaMapView() {
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
                       style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#EF4444',
+                        background: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        color: '#DC2626',
                         padding: '6px 8px',
                         borderRadius: '8px',
                         cursor: 'pointer'
@@ -445,8 +448,8 @@ export default function GymMediaMapView() {
           {/* Upload Video Box */}
           <div className="glass-card" style={{
             padding: '24px',
-            border: '2px dashed rgba(56, 189, 248, 0.4)',
-            background: 'rgba(56, 189, 248, 0.03)',
+            border: '2px dashed #93C5FD',
+            background: '#F8FBFF',
             borderRadius: '18px',
             textAlign: 'center',
             cursor: 'pointer'
@@ -464,8 +467,9 @@ export default function GymMediaMapView() {
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38BDF8',
+              background: '#EAF5FF',
+              color: '#0284C7',
+              border: '1px solid #DCEBFA',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -473,10 +477,10 @@ export default function GymMediaMapView() {
             }}>
               <Video size={26} />
             </div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F9FAFB', margin: '0 0 6px' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1F2937', margin: '0 0 6px' }}>
               Upload Gym Video Clip / 360° Virtual Tour
             </h4>
-            <p style={{ fontSize: '0.82rem', color: '#9CA3AF', margin: '0 0 14px' }}>
+            <p style={{ fontSize: '0.82rem', color: '#6B7280', margin: '0 0 14px' }}>
               Short video reel (15–60 sec) showcasing your machines, workout atmosphere, and facilities.
             </p>
             <button
@@ -485,7 +489,6 @@ export default function GymMediaMapView() {
               style={{
                 padding: '8px 20px',
                 fontSize: '0.82rem',
-                background: 'linear-gradient(135deg, #0284C7, #0369A1)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -498,13 +501,13 @@ export default function GymMediaMapView() {
 
           {/* Video Player Display */}
           {videoClip ? (
-            <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="glass-card" style={{ padding: '20px', background: '#FFFFFF', border: '1px solid #DCEBFA', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#F9FAFB', margin: 0 }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>
                     {videoTitle}
                   </h4>
-                  <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
                     ✓ Active Google Maps Showcase Video
                   </span>
                 </div>
@@ -515,9 +518,9 @@ export default function GymMediaMapView() {
                     showToast('Video clip removed.');
                   }}
                   style={{
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    color: '#EF4444',
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    color: '#DC2626',
                     padding: '6px 12px',
                     borderRadius: '8px',
                     fontSize: '0.78rem',
@@ -532,7 +535,7 @@ export default function GymMediaMapView() {
                 </button>
               </div>
 
-              <div style={{ borderRadius: '14px', overflow: 'hidden', background: '#000', maxHeight: '340px' }}>
+              <div style={{ borderRadius: '14px', overflow: 'hidden', background: '#0F172A', maxHeight: '340px' }}>
                 <video
                   ref={videoRef}
                   src={videoClip}
@@ -545,9 +548,9 @@ export default function GymMediaMapView() {
               </div>
             </div>
           ) : (
-            <div className="glass-card" style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF' }}>
-              <Video size={40} color="#6B7280" style={{ margin: '0 auto 10px', display: 'block' }} />
-              <p style={{ margin: 0, fontSize: '0.85rem' }}>No custom gym video uploaded yet.</p>
+            <div className="glass-card" style={{ padding: '24px', textAlign: 'center', color: '#6B7280', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+              <Video size={40} color="#9CA3AF" style={{ margin: '0 auto 10px', display: 'block' }} />
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151' }}>No custom gym video uploaded yet.</p>
               <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#6B7280' }}>
                 Upload a 30-second reel so prospective customers searching on Google Maps can see your gym equipment and vibe.
               </p>
@@ -558,12 +561,12 @@ export default function GymMediaMapView() {
 
       {/* ─── TAB 3: GOOGLE MAPS DETAILS & CONTACT ─────────────────────────── */}
       {activeTab === 'map' && (
-        <form onSubmit={handleSaveMapInfo} className="glass-card" style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <form onSubmit={handleSaveMapInfo} className="glass-card" style={{ padding: '22px', background: '#FFFFFF', border: '1px solid #DCEBFA', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
               Google Maps Location & Contact Information
             </h3>
-            <p style={{ fontSize: '0.8rem', color: '#9CA3AF', margin: '4px 0 0' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '4px 0 0' }}>
               These details are presented to customers on Google Maps search and directions.
             </p>
           </div>
@@ -573,7 +576,7 @@ export default function GymMediaMapView() {
               <label className="label">Gym Business Name</label>
               <input
                 type="text"
-                className="input"
+                className="input-field"
                 value={mapInfo.gym_name}
                 onChange={e => setMapInfo({ ...mapInfo, gym_name: e.target.value })}
                 required
@@ -584,7 +587,7 @@ export default function GymMediaMapView() {
               <label className="label">Contact Phone (shown on Map Call button)</label>
               <input
                 type="tel"
-                className="input"
+                className="input-field"
                 value={mapInfo.phone}
                 onChange={e => setMapInfo({ ...mapInfo, phone: e.target.value })}
                 placeholder="8953933110"
@@ -596,7 +599,7 @@ export default function GymMediaMapView() {
           <div>
             <label className="label">Full Gym Address & Landmark</label>
             <textarea
-              className="input"
+              className="input-field"
               rows={2}
               value={mapInfo.address}
               onChange={e => setMapInfo({ ...mapInfo, address: e.target.value })}
@@ -609,7 +612,7 @@ export default function GymMediaMapView() {
               <label className="label">Google Maps Link (URL)</label>
               <input
                 type="url"
-                className="input"
+                className="input-field"
                 value={mapInfo.google_maps_url}
                 onChange={e => setMapInfo({ ...mapInfo, google_maps_url: e.target.value })}
                 placeholder="https://maps.google.com/?q=..."
@@ -620,7 +623,7 @@ export default function GymMediaMapView() {
               <label className="label">Operating Days</label>
               <input
                 type="text"
-                className="input"
+                className="input-field"
                 value={mapInfo.open_days}
                 onChange={e => setMapInfo({ ...mapInfo, open_days: e.target.value })}
               />
@@ -632,7 +635,7 @@ export default function GymMediaMapView() {
               <label className="label">Morning Batch Timings</label>
               <input
                 type="text"
-                className="input"
+                className="input-field"
                 value={mapInfo.morning_timings}
                 onChange={e => setMapInfo({ ...mapInfo, morning_timings: e.target.value })}
               />
@@ -642,7 +645,7 @@ export default function GymMediaMapView() {
               <label className="label">Evening Batch Timings</label>
               <input
                 type="text"
-                className="input"
+                className="input-field"
                 value={mapInfo.evening_timings}
                 onChange={e => setMapInfo({ ...mapInfo, evening_timings: e.target.value })}
               />
@@ -656,9 +659,9 @@ export default function GymMediaMapView() {
                 <span
                   key={idx}
                   style={{
-                    background: 'rgba(245, 158, 11, 0.12)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    color: '#F59E0B',
+                    background: '#EAF5FF',
+                    border: '1px solid #BAE6FD',
+                    color: '#0284C7',
                     padding: '6px 12px',
                     borderRadius: '8px',
                     fontSize: '0.78rem',
@@ -688,17 +691,17 @@ export default function GymMediaMapView() {
       {activeTab === 'preview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            background: '#EAF5FF',
+            border: '1px solid #BAE6FD',
             padding: '12px 16px',
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             fontSize: '0.82rem',
-            color: '#93C5FD'
+            color: '#0369A1'
           }}>
-            <Eye size={18} color="#60A5FA" />
+            <Eye size={18} color="#0284C7" />
             <span>
               <strong>Customer View:</strong> This is how your gym appears when someone opens Google Maps and searches for <em>"gym near me"</em> or <em>"{mapInfo.gym_name}"</em>.
             </span>

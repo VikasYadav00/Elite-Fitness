@@ -41,17 +41,18 @@ export default function WorkoutsDietsView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem' }}>Workouts & Diet Plans</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>Weekly schedule for members, custom routines, and diet templates.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1F2937' }}>Workouts & Diet Plans</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem', margin: 0 }}>Weekly schedule for members, custom routines, and diet templates.</p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             className="btn-secondary"
             style={{
-              background: tab === 'WEEKLY' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
-              color: tab === 'WEEKLY' ? '#F59E0B' : '#9CA3AF',
-              borderColor: tab === 'WEEKLY' ? '#F59E0B' : 'rgba(255,255,255,0.1)'
+              background: tab === 'WEEKLY' ? '#EAF5FF' : '#FFFFFF',
+              color: tab === 'WEEKLY' ? '#0284C7' : '#6B7280',
+              borderColor: tab === 'WEEKLY' ? '#4DA6FF' : '#DCEBFA',
+              fontWeight: 700
             }}
             onClick={() => setTab('WEEKLY')}
           >
@@ -60,9 +61,10 @@ export default function WorkoutsDietsView() {
           <button
             className="btn-secondary"
             style={{
-              background: tab === 'WORKOUTS' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
-              color: tab === 'WORKOUTS' ? '#F59E0B' : '#9CA3AF',
-              borderColor: tab === 'WORKOUTS' ? '#F59E0B' : 'rgba(255,255,255,0.1)'
+              background: tab === 'WORKOUTS' ? '#EAF5FF' : '#FFFFFF',
+              color: tab === 'WORKOUTS' ? '#0284C7' : '#6B7280',
+              borderColor: tab === 'WORKOUTS' ? '#4DA6FF' : '#DCEBFA',
+              fontWeight: 700
             }}
             onClick={() => setTab('WORKOUTS')}
           >
@@ -71,9 +73,10 @@ export default function WorkoutsDietsView() {
           <button
             className="btn-secondary"
             style={{
-              background: tab === 'DIETS' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255,255,255,0.05)',
-              color: tab === 'DIETS' ? '#F59E0B' : '#9CA3AF',
-              borderColor: tab === 'DIETS' ? '#F59E0B' : 'rgba(255,255,255,0.1)'
+              background: tab === 'DIETS' ? '#EAF5FF' : '#FFFFFF',
+              color: tab === 'DIETS' ? '#0284C7' : '#6B7280',
+              borderColor: tab === 'DIETS' ? '#4DA6FF' : '#DCEBFA',
+              fontWeight: 700
             }}
             onClick={() => setTab('DIETS')}
           >
@@ -87,8 +90,9 @@ export default function WorkoutsDietsView() {
           {/* Header Banner */}
           <div className="glass-card" style={{
             padding: '20px 24px',
-            background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(15,23,42,0.8))',
-            border: '1px solid rgba(245,158,11,0.3)',
+            background: 'linear-gradient(135deg, #EBF5FF 0%, #FFFFFF 100%)',
+            border: '1px solid #DCEBFA',
+            boxShadow: '0 2px 12px rgba(77, 166, 255, 0.08)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -96,13 +100,13 @@ export default function WorkoutsDietsView() {
             gap: '14px'
           }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#F59E0B', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0284C7', fontWeight: 800, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <Sparkles size={14} /> Member Workout Protocol
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', marginTop: '4px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', marginTop: '4px' }}>
                 Weekly Workout Plan
               </h3>
-              <p style={{ color: '#9CA3AF', fontSize: '0.82rem', marginTop: '2px' }}>
+              <p style={{ color: '#6B7280', fontSize: '0.82rem', marginTop: '2px' }}>
                 Standard routine published to member apps & gym workout boards.
               </p>
             </div>
@@ -116,10 +120,10 @@ export default function WorkoutsDietsView() {
           </div>
 
           {/* Weekly Schedule Table / Cards */}
-          <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#F9FAFB' }}>📅 7-Day Training Split</span>
-              <span style={{ fontSize: '0.78rem', color: '#10B981', fontWeight: 700 }}>6 Training Days • 1 Rest Day</span>
+          <div className="glass-card" style={{ padding: '0', overflow: 'hidden', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #DCEBFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FBFF' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1F2937' }}>📅 7-Day Training Split</span>
+              <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700, background: '#ECFDF5', padding: '3px 10px', borderRadius: '999px', border: '1px solid #A7F3D0' }}>6 Training Days • 1 Rest Day</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table className="table" style={{ margin: 0 }}>
@@ -132,8 +136,8 @@ export default function WorkoutsDietsView() {
                 </thead>
                 <tbody>
                   {WEEKLY_PLAN.map((item) => (
-                    <tr key={item.day} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ fontWeight: 800, color: '#F9FAFB', fontSize: '0.92rem' }}>
+                    <tr key={item.day} style={{ borderBottom: '1px solid #DCEBFA' }}>
+                      <td style={{ fontWeight: 800, color: '#1F2937', fontSize: '0.92rem' }}>
                         {item.day}
                       </td>
                       <td>
@@ -153,7 +157,7 @@ export default function WorkoutsDietsView() {
                           <span>{item.tag}</span>
                         </span>
                       </td>
-                      <td style={{ color: '#D1D5DB', fontSize: '0.86rem', lineHeight: 1.5 }}>
+                      <td style={{ color: '#4B5563', fontSize: '0.86rem', lineHeight: 1.5 }}>
                         {item.exercises}
                       </td>
                     </tr>
@@ -164,25 +168,25 @@ export default function WorkoutsDietsView() {
           </div>
 
           {/* Sets & Reps Guidelines Card */}
-          <div className="glass-card" style={{ padding: '22px' }}>
+          <div className="glass-card" style={{ padding: '22px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <Info size={18} color="#F59E0B" />
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F9FAFB', margin: 0 }}>
+              <Info size={18} color="#0284C7" />
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>
                 Sets & Reps Training Guidelines
               </h4>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
               {GUIDELINES.map((g, idx) => (
                 <div key={idx} style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  background: '#F8FBFF',
+                  border: '1px solid #DCEBFA',
                   borderRadius: '12px',
                   padding: '14px 16px'
                 }}>
-                  <div style={{ fontSize: '0.72rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>
                     {g.label}
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#F59E0B' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0284C7' }}>
                     {g.value}
                   </div>
                 </div>
@@ -193,13 +197,13 @@ export default function WorkoutsDietsView() {
       ) : tab === 'WORKOUTS' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           {workouts.map((w) => (
-            <div key={w.id} className="glass-card" style={{ padding: '24px' }}>
+            <div key={w.id} className="glass-card" style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span className="status-badge status-active">{w.category}</span>
-                <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>{w.days} Days / Week</span>
+                <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>{w.days} Days / Week</span>
               </div>
-              <h3 style={{ fontSize: '1.15rem', color: '#F9FAFB', marginBottom: '8px' }}>{w.name}</h3>
-              <p style={{ color: '#9CA3AF', fontSize: '0.85rem', marginBottom: '16px' }}>Includes {w.exercisesCount} structured exercise routines.</p>
+              <h3 style={{ fontSize: '1.15rem', color: '#1F2937', marginBottom: '8px', fontWeight: 800 }}>{w.name}</h3>
+              <p style={{ color: '#6B7280', fontSize: '0.85rem', marginBottom: '16px' }}>Includes {w.exercisesCount} structured exercise routines.</p>
               <button className="btn-primary" style={{ width: '100%', fontSize: '0.85rem' }} onClick={() => setShowAssignModal(true)}>
                 <UserCheck size={16} /> Assign to Member
               </button>
@@ -209,24 +213,24 @@ export default function WorkoutsDietsView() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           {diets.map((d) => (
-            <div key={d.id} className="glass-card" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.15rem', color: '#F9FAFB', marginBottom: '12px' }}>{d.name}</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.8rem', textAlign: 'center' }}>
+            <div key={d.id} className="glass-card" style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+              <h3 style={{ fontSize: '1.15rem', color: '#1F2937', marginBottom: '12px', fontWeight: 800 }}>{d.name}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', background: '#F8FBFF', border: '1px solid #DCEBFA', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.8rem', textAlign: 'center' }}>
                 <div>
-                  <span style={{ color: '#9CA3AF', display: 'block' }}>CALORIES</span>
-                  <strong style={{ color: '#F59E0B' }}>{d.calories}</strong>
+                  <span style={{ color: '#6B7280', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>CALORIES</span>
+                  <strong style={{ color: '#D97706', fontSize: '0.95rem' }}>{d.calories}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#9CA3AF', display: 'block' }}>PROTEIN</span>
-                  <strong style={{ color: '#10B981' }}>{d.protein}</strong>
+                  <span style={{ color: '#6B7280', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>PROTEIN</span>
+                  <strong style={{ color: '#059669', fontSize: '0.95rem' }}>{d.protein}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#9CA3AF', display: 'block' }}>CARBS</span>
-                  <strong style={{ color: '#38BDF8' }}>{d.carbs}</strong>
+                  <span style={{ color: '#6B7280', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>CARBS</span>
+                  <strong style={{ color: '#0284C7', fontSize: '0.95rem' }}>{d.carbs}</strong>
                 </div>
                 <div>
-                  <span style={{ color: '#9CA3AF', display: 'block' }}>FATS</span>
-                  <strong style={{ color: '#F87171' }}>{d.fats}</strong>
+                  <span style={{ color: '#6B7280', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>FATS</span>
+                  <strong style={{ color: '#DC2626', fontSize: '0.95rem' }}>{d.fats}</strong>
                 </div>
               </div>
               <button className="btn-primary" style={{ width: '100%', fontSize: '0.85rem' }} onClick={() => setShowAssignModal(true)}>
@@ -241,8 +245,8 @@ export default function WorkoutsDietsView() {
         <div className="modal-overlay">
           <div className="modal-content animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.2rem', color: '#F59E0B' }}>Assign Plan to Member</h3>
-              <X size={20} color="#9CA3AF" style={{ cursor: 'pointer' }} onClick={() => setShowAssignModal(false)} />
+              <h3 style={{ fontSize: '1.2rem', color: '#1F2937', fontWeight: 800 }}>Assign Plan to Member</h3>
+              <X size={20} color="#6B7280" style={{ cursor: 'pointer' }} onClick={() => setShowAssignModal(false)} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -9,8 +9,10 @@ const {
 
 router.get('/stats', authenticate, authorize('OWNER'), getDashboardStats);
 router.get('/charts/revenue', authenticate, authorize('OWNER'), getRevenueChart);
+router.get('/revenue-chart', authenticate, authorize('OWNER'), getRevenueChart);
 router.get('/charts/expenses', authenticate, authorize('OWNER'), getExpensesChart);
 router.get('/charts/attendance', authenticate, authorize('OWNER', 'TRAINER'), getAttendanceChart);
+router.get('/attendance-chart', authenticate, authorize('OWNER', 'TRAINER'), getAttendanceChart);
 router.get('/recent-registrations', authenticate, authorize('OWNER'), getRecentRegistrations);
 router.get('/recent-payments', authenticate, authorize('OWNER'), getRecentPayments);
 router.get('/expiring-memberships', authenticate, authorize('OWNER'), getExpiringMemberships);

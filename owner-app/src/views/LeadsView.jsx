@@ -48,8 +48,8 @@ export default function LeadsView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Leads CRM & Customer Feedback</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>Track new gym enquiries and collect customer feedback via QR.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1F2937' }}>Leads CRM & Customer Feedback</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>Track new gym enquiries and collect customer feedback via QR.</p>
         </div>
         <button className="btn-primary" onClick={() => setShowAddModal(true)}>
           <Plus size={18} /> Add New Lead
@@ -59,8 +59,9 @@ export default function LeadsView() {
       {/* Customer Feedback QR Code Showcase Card */}
       <div className="glass-card" style={{
         padding: '24px',
-        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.85))',
-        border: '1px solid rgba(245, 158, 11, 0.35)',
+        background: 'linear-gradient(135deg, #EBF5FF 0%, #FFFFFF 100%)',
+        border: '1px solid #DCEBFA',
+        boxShadow: '0 4px 16px rgba(77, 166, 255, 0.08)',
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
         gap: '24px',
@@ -72,7 +73,8 @@ export default function LeadsView() {
             background: '#FFFFFF',
             padding: '16px',
             borderRadius: '20px',
-            boxShadow: '0 12px 36px rgba(245, 158, 11, 0.2), 0 0 0 3px rgba(245, 158, 11, 0.35)',
+            boxShadow: '0 8px 24px rgba(77, 166, 255, 0.15)',
+            border: '2px solid #DCEBFA',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -90,7 +92,7 @@ export default function LeadsView() {
             style={{ padding: '6px 14px', fontSize: '0.78rem' }}
             onClick={handleCopyFeedbackLink}
           >
-            {copied ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
+            {copied ? <Check size={14} color="#059669" /> : <Copy size={14} />}
             {copied ? 'Link Copied' : 'Copy Feedback Link'}
           </button>
         </div>
@@ -103,8 +105,9 @@ export default function LeadsView() {
             gap: '8px',
             padding: '4px 12px',
             borderRadius: '999px',
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#F59E0B',
+            background: '#EAF5FF',
+            border: '1px solid #BAE6FD',
+            color: '#0284C7',
             width: 'fit-content',
             fontSize: '0.75rem',
             fontWeight: 800
@@ -112,11 +115,11 @@ export default function LeadsView() {
             <QrCode size={14} /> CUSTOMER REVIEW & FEEDBACK QR
           </div>
 
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
             Customer Feedback & Reviews
           </h3>
 
-          <p style={{ color: '#D1D5DB', fontSize: '0.85rem', lineHeight: 1.5 }}>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
             Place this QR at gym reception, water stations, or locker rooms. Members and trial visitors can scan to share their gym experience and rating.
           </p>
 
@@ -127,34 +130,36 @@ export default function LeadsView() {
             marginTop: '4px'
           }}>
             <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: '#FFFFFF',
+              border: '1px solid #DCEBFA',
               borderRadius: '12px',
               padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '10px',
+              boxShadow: '0 1px 4px rgba(77, 166, 255, 0.06)'
             }}>
-              <Star size={24} color="#F59E0B" fill="#F59E0B" />
+              <Star size={24} color="#D97706" fill="#D97706" />
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#F9FAFB' }}>4.9 / 5.0</div>
-                <div style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>Gym Satisfaction</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#1F2937' }}>4.9 / 5.0</div>
+                <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>Gym Satisfaction</div>
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: '#FFFFFF',
+              border: '1px solid #DCEBFA',
               borderRadius: '12px',
               padding: '10px 16px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '10px',
+              boxShadow: '0 1px 4px rgba(77, 166, 255, 0.06)'
             }}>
-              <MessageSquare size={22} color="#10B981" />
+              <MessageSquare size={22} color="#059669" />
               <div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10B981' }}>128</div>
-                <div style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>Feedbacks Received</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#059669' }}>128</div>
+                <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>Feedbacks Received</div>
               </div>
             </div>
           </div>
@@ -162,30 +167,30 @@ export default function LeadsView() {
       </div>
 
       {/* Recent Feedbacks List */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#F9FAFB', marginBottom: '14px' }}>
+      <div className="glass-card" style={{ padding: '20px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+        <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#1F2937', marginBottom: '14px' }}>
           💬 Recent Member Feedback & Reviews
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {feedbacks.map(f => (
             <div key={f.id} style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: '#F8FBFF',
+              border: '1px solid #DCEBFA',
               borderRadius: '12px',
               padding: '14px 16px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#F9FAFB' }}>{f.name}</div>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1F2937' }}>{f.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ display: 'flex', gap: '2px' }}>
                     {[...Array(f.rating)].map((_, i) => (
-                      <Star key={i} size={13} color="#F59E0B" fill="#F59E0B" />
+                      <Star key={i} size={13} color="#D97706" fill="#D97706" />
                     ))}
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#9CA3AF', marginLeft: '6px' }}>{f.date}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#6B7280', marginLeft: '6px' }}>{f.date}</span>
                 </div>
               </div>
-              <div style={{ color: '#D1D5DB', fontSize: '0.84rem', lineHeight: 1.4 }}>
+              <div style={{ color: '#4B5563', fontSize: '0.84rem', lineHeight: 1.4 }}>
                 "{f.comment}"
               </div>
             </div>
@@ -194,10 +199,10 @@ export default function LeadsView() {
       </div>
 
       {/* Leads Table */}
-      <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>🎯 Active Leads & Enquiries</h3>
-          <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>{leads.length} active leads</span>
+      <div className="glass-card" style={{ padding: '0', overflow: 'hidden', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #DCEBFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FBFF' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>🎯 Active Leads & Enquiries</h3>
+          <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 600 }}>{leads.length} active leads</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="table" style={{ margin: 0 }}>
@@ -214,10 +219,10 @@ export default function LeadsView() {
             <tbody>
               {leads.map((l) => (
                 <tr key={l.id}>
-                  <td style={{ fontWeight: 600 }}>{l.name}</td>
-                  <td>{l.phone}</td>
-                  <td>{l.goal}</td>
-                  <td>{l.date}</td>
+                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{l.name}</td>
+                  <td style={{ color: '#4B5563' }}>{l.phone}</td>
+                  <td style={{ color: '#4B5563' }}>{l.goal}</td>
+                  <td style={{ color: '#6B7280' }}>{l.date}</td>
                   <td>
                     <span className={`status-badge ${l.status === 'JOINED' ? 'status-active' : 'status-frozen'}`}>
                       {l.status}
@@ -227,7 +232,7 @@ export default function LeadsView() {
                     {l.status !== 'JOINED' && (
                       <button
                         className="btn-primary"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                        style={{ padding: '4px 10px', fontSize: '0.75rem', minHeight: '32px' }}
                         onClick={() => handleConvert(l.id)}
                       >
                         Convert to Member <ArrowRight size={12} />
@@ -246,8 +251,8 @@ export default function LeadsView() {
         <div className="modal-overlay">
           <div className="modal-content animate-fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.2rem', color: '#F59E0B' }}>Add New Enquiry Lead</h3>
-              <X size={20} color="#9CA3AF" style={{ cursor: 'pointer' }} onClick={() => setShowAddModal(false)} />
+              <h3 style={{ fontSize: '1.2rem', color: '#1F2937', fontWeight: 800 }}>Add New Enquiry Lead</h3>
+              <X size={20} color="#6B7280" style={{ cursor: 'pointer' }} onClick={() => setShowAddModal(false)} />
             </div>
 
             <form onSubmit={handleAddLead} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

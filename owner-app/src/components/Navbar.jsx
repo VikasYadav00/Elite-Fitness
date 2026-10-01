@@ -21,10 +21,9 @@ export default function Navbar({ onLogout, activeTab, isSidebarOpen, onToggleSid
   return (
     <header style={{
       height: '60px',
-      background: 'rgba(13, 19, 31, 0.95)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(245, 158, 11, 0.25)',
+      background: '#FFFFFF',
+      borderBottom: '1px solid #DCEBFA',
+      boxShadow: '0 1px 6px rgba(77, 166, 255, 0.1)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -42,15 +41,15 @@ export default function Navbar({ onLogout, activeTab, isSidebarOpen, onToggleSid
           onClick={onToggleSidebar}
           aria-label="Toggle navigation menu"
           style={{
-            background: isSidebarOpen ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-            border: isSidebarOpen ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.15)',
+            background: isSidebarOpen ? '#EAF5FF' : '#F8FBFF',
+            border: isSidebarOpen ? '1px solid #4DA6FF' : '1px solid #DCEBFA',
             borderRadius: '10px',
             width: '40px',
             height: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: isSidebarOpen ? '#F59E0B' : '#F9FAFB',
+            color: isSidebarOpen ? '#4DA6FF' : '#1F2937',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             flexShrink: 0
@@ -64,22 +63,23 @@ export default function Navbar({ onLogout, activeTab, isSidebarOpen, onToggleSid
         <div style={{
           width: '34px',
           height: '34px',
-          borderRadius: '9px',
-          background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+          borderRadius: '10px',
+          background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flexShrink: 0
+          flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(77, 166, 255, 0.35)',
         }}>
-          <Dumbbell size={18} color="#000" />
+          <Dumbbell size={18} color="#FFFFFF" />
         </div>
 
         {/* Brand Text */}
         <div style={{ lineHeight: 1.1 }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#F9FAFB', margin: 0, letterSpacing: '-0.01em' }}>
-            ELITE <span style={{ color: '#F59E0B' }}>FITNESS</span>
+          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#1F2937', margin: 0, letterSpacing: '-0.01em' }}>
+            ELITE <span style={{ color: '#4DA6FF' }}>FITNESS</span>
           </h2>
-          <span style={{ fontSize: '0.625rem', color: '#9CA3AF', letterSpacing: '0.08em', fontWeight: 700 }}>
+          <span style={{ fontSize: '0.625rem', color: '#6B7280', letterSpacing: '0.08em', fontWeight: 700 }}>
             OWNER PORTAL
           </span>
         </div>
@@ -88,12 +88,12 @@ export default function Navbar({ onLogout, activeTab, isSidebarOpen, onToggleSid
         <div className="active-module-pill" style={{
           display: 'none',
           padding: '3px 10px',
-          background: 'rgba(245, 158, 11, 0.12)',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
+          background: '#EAF5FF',
+          border: '1px solid #BAE6FD',
           borderRadius: '999px',
           fontSize: '0.72rem',
           fontWeight: 700,
-          color: '#F59E0B',
+          color: '#0284C7',
           whiteSpace: 'nowrap'
         }}>
           {currentTitle}
@@ -103,9 +103,9 @@ export default function Navbar({ onLogout, activeTab, isSidebarOpen, onToggleSid
       {/* Right: Status & Logout */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div className="nav-status-badge" style={{
-          background: 'rgba(16, 185, 129, 0.12)',
-          color: '#10B981',
-          border: '1px solid rgba(16, 185, 129, 0.25)',
+          background: '#ECFDF5',
+          color: '#059669',
+          border: '1px solid #A7F3D0',
           padding: '4px 10px',
           borderRadius: '9999px',
           fontSize: '0.72rem',

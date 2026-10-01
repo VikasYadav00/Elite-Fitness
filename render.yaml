@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: elite-fitness-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://vikasyadav00.github.io/Elite-Fitness
+      - key: QR_WEB_URL
+        value: https://vikasyadav00.github.io/Elite-Fitness
+      - key: OWNER_APP_URL
+        value: https://vikasyadav00.github.io/Elite-Fitness/owner
+      - key: CORS_ORIGIN
+        value: https://vikasyadav00.github.io,https://vikasyadav00.github.io/Elite-Fitness

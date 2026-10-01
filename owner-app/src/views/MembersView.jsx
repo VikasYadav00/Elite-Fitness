@@ -191,8 +191,11 @@ export default function MembersView({ setActiveTab }) {
       ]);
 
       const backendMembers = [];
-      if (mRes.status === 'fulfilled' && mRes.value.data?.data?.members) {
-        mRes.value.data.data.members.forEach(m => {
+      if (mRes.status === 'fulfilled') {
+        const rows = Array.isArray(mRes.value.data?.data)
+          ? mRes.value.data.data
+          : (mRes.value.data?.data?.members || mRes.value.data?.members || []);
+        rows.forEach(m => {
           const isInactive = m.status === 'INACTIVE' || m.payment_status === 'DUE' || m.payment_status === 'PENDING';
           backendMembers.push({
             id: String(m.id),
@@ -420,7 +423,7 @@ export default function MembersView({ setActiveTab }) {
         localStorage.setItem('ef_submitted_utr_requests', JSON.stringify([utrReq, ...storedUtrs]));
       } catch (e) {}
 
-      // Try sending to backend
+      // Try sending to backend payment-requests
       try {
         await api.post('/payment-requests', {
           plan_id: 1,
@@ -428,6 +431,28 @@ export default function MembersView({ setActiveTab }) {
           proof_note: newMember.proof_note.trim() || 'UPI QR Registration'
         });
       } catch (err) {}
+    }
+
+    // Persist member record to backend database
+    try {
+      const planIdMap = { 1: 1, 3: 2, 6: 3, 12: 4 };
+      const planId = planIdMap[newMember.duration_months] || 2;
+      const res = await api.post('/members', {
+        full_name: created.full_name,
+        phone: created.phone,
+        email: created.email || undefined,
+        plan_id: planId,
+        payment_method: newMember.payment_method,
+        status: isVerified ? 'ACTIVE' : 'INACTIVE',
+        amount: amountNum,
+        utr_number: newMember.utr_number.trim() || undefined
+      });
+      if (res.data?.success && res.data.data) {
+        created.id = String(res.data.data.id || created.id);
+        created.registration_id = res.data.data.registration_id || created.registration_id;
+      }
+    } catch (err) {
+      console.log('Backend member create note:', err.message);
     }
 
     setShowAddModal(false);
@@ -481,20 +506,23 @@ export default function MembersView({ setActiveTab }) {
         <div style={{
           position: 'fixed',
           bottom: '24px',
-          right: '24px',
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: '1px solid #10B981',
-          color: '#F9FAFB',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA',
+          color: '#1F2937',
           padding: '12px 20px',
           borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.875rem'
+          fontSize: '0.875rem',
+          whiteSpace: 'nowrap',
+          maxWidth: '90vw',
         }}>
-          <Sparkles size={18} color="#10B981" />
+          <Sparkles size={16} color="#4DA6FF" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -508,28 +536,26 @@ export default function MembersView({ setActiveTab }) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: '#EAF5FF',
+              border: '1px solid #DCEBFA',
               borderRadius: '10px',
               padding: '7px 14px',
               cursor: 'pointer',
-              color: '#9CA3AF',
+              color: '#4DA6FF',
               fontSize: '0.82rem',
               fontWeight: 600,
               fontFamily: 'Outfit, sans-serif',
               width: 'fit-content',
               transition: 'all 0.2s ease'
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#F59E0B'; e.currentTarget.style.borderColor = 'rgba(245,158,11,0.4)'; e.currentTarget.style.background = 'rgba(245,158,11,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >
             <ArrowLeft size={16} /> Back to Dashboard
           </button>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F9FAFB' }}>Member Management</h2>
-            <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Member Management</h2>
+            <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
               Full member profiles with instant one-tap status overrides & live sync.
             </p>
           </div>
@@ -576,14 +602,14 @@ export default function MembersView({ setActiveTab }) {
               key={m.id}
               className="glass-card"
               style={{
-                background: 'rgba(15, 23, 42, 0.85)',
-                border: '1px solid rgba(255, 255, 255, 0.09)',
+                background: '#FFFFFF',
+                border: '1px solid #DCEBFA',
                 borderRadius: '18px',
                 padding: '18px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '14px',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+                boxShadow: '0 2px 8px rgba(77, 166, 255, 0.08)',
                 transition: 'border-color 0.2s ease, transform 0.2s ease'
               }}
             >
@@ -592,7 +618,7 @@ export default function MembersView({ setActiveTab }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '14px',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: '#EAF5FF',
                 padding: '12px 14px',
                 borderRadius: '14px'
               }}>
@@ -600,8 +626,8 @@ export default function MembersView({ setActiveTab }) {
                   width: '54px',
                   height: '54px',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                  color: '#0F172A',
+                  background: 'linear-gradient(135deg, #4DA6FF, #2E8FE8)',
+                  color: '#FFFFFF',
                   fontWeight: 900,
                   fontSize: '1.25rem',
                   fontFamily: 'Outfit, sans-serif',
@@ -609,7 +635,7 @@ export default function MembersView({ setActiveTab }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)'
+                  boxShadow: '0 4px 14px rgba(77, 166, 255, 0.35)'
                 }}>
                   {getInitials(m.full_name)}
                 </div>
@@ -618,7 +644,7 @@ export default function MembersView({ setActiveTab }) {
                   <h3 style={{
                     fontSize: '1.2rem',
                     fontWeight: 800,
-                    color: '#F9FAFB',
+                    color: '#1F2937',
                     margin: 0,
                     lineHeight: 1.25,
                     overflow: 'hidden',
@@ -630,7 +656,7 @@ export default function MembersView({ setActiveTab }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap', position: 'relative' }}>
                     <span style={{
                       fontFamily: 'monospace',
-                      color: '#F59E0B',
+                      color: '#4DA6FF',
                       fontWeight: 700,
                       fontSize: '0.85rem'
                     }}>
@@ -668,13 +694,13 @@ export default function MembersView({ setActiveTab }) {
                         left: 0,
                         zIndex: 200,
                         marginTop: '6px',
-                        background: '#1E293B',
-                        border: '1px solid rgba(245,158,11,0.35)',
+                        background: '#FFFFFF',
+                        border: '1.5px solid #DCEBFA',
                         borderRadius: '14px',
                         padding: '8px',
                         display: 'flex',
                         gap: '6px',
-                        boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
+                        boxShadow: '0 8px 24px rgba(77, 166, 255, 0.15)',
                         animation: 'fadeIn 0.15s ease'
                       }}>
                         {[
@@ -692,9 +718,9 @@ export default function MembersView({ setActiveTab }) {
                               style={{
                                 padding: '8px 10px',
                                 borderRadius: '10px',
-                                border: isCurr ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.08)',
-                                background: isCurr ? `${color}22` : 'rgba(255,255,255,0.04)',
-                                color: isCurr ? color : '#9CA3AF',
+                                border: isCurr ? `2px solid ${color}` : '1px solid #DCEBFA',
+                                background: isCurr ? `${color}22` : '#F8FBFF',
+                                color: isCurr ? color : '#6B7280',
                                 fontSize: '0.68rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
@@ -722,29 +748,29 @@ export default function MembersView({ setActiveTab }) {
               {/* Phone & Email Boxes (Side by Side) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: '#F0F7FF',
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)'
+                  border: '1px solid #DCEBFA'
                 }}>
-                  <span style={{ color: '#9CA3AF', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
+                  <span style={{ color: '#6B7280', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
                     PHONE NUMBER
                   </span>
-                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#F9FAFB', marginTop: '3px' }}>
+                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#1F2937', marginTop: '3px' }}>
                     {m.phone}
                   </div>
                 </div>
 
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: '#F0F7FF',
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)'
+                  border: '1px solid #DCEBFA'
                 }}>
-                  <span style={{ color: '#9CA3AF', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
+                  <span style={{ color: '#6B7280', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
                     EMAIL ADDRESS
                   </span>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#F9FAFB', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1F2937', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {m.email || 'None provided'}
                   </div>
                 </div>
@@ -752,26 +778,26 @@ export default function MembersView({ setActiveTab }) {
 
               {/* Plan & Payment Details Box */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: '#F0F7FF',
                 padding: '14px 16px',
                 borderRadius: '14px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                border: '1px solid #DCEBFA',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>Assigned Plan:</span>
-                  <strong style={{ color: '#F9FAFB', fontSize: '0.95rem' }}>{m.plan_name}</strong>
+                  <span style={{ color: '#6B7280', fontSize: '0.85rem' }}>Assigned Plan:</span>
+                  <strong style={{ color: '#1F2937', fontSize: '0.95rem' }}>{m.plan_name}</strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>Expiry Date:</span>
-                  <strong style={{ color: '#F59E0B', fontSize: '1rem', fontFamily: 'monospace' }}>{m.end_date}</strong>
+                  <span style={{ color: '#6B7280', fontSize: '0.85rem' }}>Expiry Date:</span>
+                  <strong style={{ color: '#4DA6FF', fontSize: '1rem', fontFamily: 'monospace' }}>{m.end_date}</strong>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>Payment Standing:</span>
+                  <span style={{ color: '#6B7280', fontSize: '0.85rem' }}>Payment Standing:</span>
                   <span style={{
                     padding: '3px 10px',
                     borderRadius: '6px',

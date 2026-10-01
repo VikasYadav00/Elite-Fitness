@@ -6,6 +6,7 @@ import {
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
+import api from '../api';
 
 // ─── Date Range Presets ────────────────────────────────────────────────────────
 const DATE_PRESETS = [
@@ -41,17 +42,17 @@ function DateRangeModal({ reportType, reportLabel, onClose, onExport }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="modal-content animate-fade-in" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', background: '#FFFFFF', border: '1px solid #DCEBFA', boxShadow: '0 20px 50px rgba(77, 166, 255, 0.15)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <h3 style={{ fontSize: '1.2rem', color: '#F59E0B', fontWeight: 800 }}>
+          <h3 style={{ fontSize: '1.2rem', color: '#1F2937', fontWeight: 800 }}>
             📅 Select Export Date Range
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
             <X size={20} />
           </button>
         </div>
-        <p style={{ color: '#9CA3AF', fontSize: '0.82rem', marginBottom: '20px' }}>
-          Choose a period for the <strong style={{ color: '#F9FAFB' }}>{reportLabel}</strong> export.
+        <p style={{ color: '#6B7280', fontSize: '0.82rem', marginBottom: '20px' }}>
+          Choose a period for the <strong style={{ color: '#1F2937' }}>{reportLabel}</strong> export.
         </p>
 
         {/* Preset Grid */}
@@ -64,8 +65,8 @@ function DateRangeModal({ reportType, reportLabel, onClose, onExport }) {
               style={{
                 padding: '14px 16px',
                 borderRadius: '12px',
-                border: selected === preset.key ? '2px solid #F59E0B' : '1px solid rgba(255,255,255,0.08)',
-                background: selected === preset.key ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.03)',
+                border: selected === preset.key ? '2px solid #4DA6FF' : '1px solid #DCEBFA',
+                background: selected === preset.key ? '#EAF5FF' : '#FFFFFF',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.18s ease',
@@ -77,18 +78,18 @@ function DateRangeModal({ reportType, reportLabel, onClose, onExport }) {
               <span style={{
                 fontWeight: 700,
                 fontSize: '0.875rem',
-                color: selected === preset.key ? '#F59E0B' : '#F9FAFB'
+                color: selected === preset.key ? '#0284C7' : '#1F2937'
               }}>
                 {preset.label}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>{preset.desc()}</span>
+              <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>{preset.desc()}</span>
             </button>
           ))}
         </div>
 
         {/* Custom Date Range */}
         {selected === 'custom' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px', padding: '16px', background: 'rgba(245,158,11,0.06)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px', padding: '16px', background: '#F8FBFF', borderRadius: '12px', border: '1px solid #DCEBFA' }}>
             <div>
               <label className="label">From Date</label>
               <input
@@ -146,32 +147,84 @@ export default function ReportsView() {
     };
     setExportLog(prev => [logEntry, ...prev]);
 
-    // Build CSV rows based on report type
+    // Build CSV rows based on real backend data
     let csvRows = [];
     if (type === 'payments') {
-      csvRows = [
-        ['Month', 'Revenue (INR)', 'Expenses (INR)', 'Net Profit (INR)', 'Margin %', 'Memberships Sold'],
-        ...MONTHLY_FINANCE.map(m => {
-          const profit = m.revenue - m.expense;
-          const margin = Math.round((profit / m.revenue) * 100);
-          return [m.month, m.revenue, m.expense, profit, `${margin}%`, m.memberships_sold];
-        })
-      ];
+      try {
+        const res = await api.get('/reports/revenue');
+        if (res.data?.success && res.data.data?.payments?.length > 0) {
+          csvRows = [
+            ['Invoice Number', 'Member Name', 'Plan', 'Amount (INR)', 'Payment Method', 'Date', 'Status'],
+            ...res.data.data.payments.map(p => [
+              p.invoice_number, p.full_name || 'Member', p.plan_name || 'N/A', p.amount, p.payment_method, p.payment_date, p.status
+            ])
+          ];
+        }
+      } catch (_) {}
+      if (csvRows.length === 0) {
+        csvRows = [
+          ['Month', 'Revenue (INR)', 'Expenses (INR)', 'Net Profit (INR)', 'Margin %', 'Memberships Sold'],
+          ...MONTHLY_FINANCE.map(m => {
+            const profit = m.revenue - m.expense;
+            const margin = Math.round((profit / m.revenue) * 100);
+            return [m.month, m.revenue, m.expense, profit, `${margin}%`, m.memberships_sold];
+          })
+        ];
+      }
     } else if (type === 'members') {
-      csvRows = [
-        ['Month', 'Members Joined', 'Memberships Sold'],
-        ...MONTHLY_FINANCE.map(m => [m.month, m.members_joined, m.memberships_sold])
-      ];
+      try {
+        const res = await api.get('/reports/membership');
+        if (res.data?.success && res.data.data?.memberships?.length > 0) {
+          csvRows = [
+            ['Registration ID', 'Member Name', 'Phone', 'Plan', 'Start Date', 'End Date', 'Status', 'Days Remaining'],
+            ...res.data.data.memberships.map(m => [
+              m.registration_id, m.full_name, m.phone, m.plan_name, m.start_date, m.end_date, m.membership_status, m.days_remaining
+            ])
+          ];
+        }
+      } catch (_) {}
+      if (csvRows.length === 0) {
+        csvRows = [
+          ['Month', 'Members Joined', 'Memberships Sold'],
+          ...MONTHLY_FINANCE.map(m => [m.month, m.members_joined, m.memberships_sold])
+        ];
+      }
     } else if (type === 'attendance') {
-      csvRows = [
-        ['Month', 'Members Joined', 'Active Memberships'],
-        ...MONTHLY_FINANCE.map(m => [m.month, m.members_joined, m.memberships_sold])
-      ];
+      try {
+        const res = await api.get('/reports/attendance');
+        if (res.data?.success && res.data.data?.records?.length > 0) {
+          csvRows = [
+            ['Date', 'Registration ID', 'Member Name', 'Phone', 'Method', 'Status', 'Check-in Time'],
+            ...res.data.data.records.map(a => [
+              a.date, a.registration_id, a.full_name, a.phone, a.method, a.status, a.check_in_time
+            ])
+          ];
+        }
+      } catch (_) {}
+      if (csvRows.length === 0) {
+        csvRows = [
+          ['Month', 'Members Joined', 'Active Memberships'],
+          ...MONTHLY_FINANCE.map(m => [m.month, m.members_joined, m.memberships_sold])
+        ];
+      }
     } else if (type === 'expenses') {
-      csvRows = [
-        ['Month', 'Total Expenses (INR)', 'Revenue (INR)', 'Net Profit (INR)'],
-        ...MONTHLY_FINANCE.map(m => [m.month, m.expense, m.revenue, m.revenue - m.expense])
-      ];
+      try {
+        const res = await api.get('/reports/expenses');
+        if (res.data?.success && res.data.data?.expenses?.length > 0) {
+          csvRows = [
+            ['Date', 'Category', 'Description', 'Amount (INR)', 'Payment Method'],
+            ...res.data.data.expenses.map(e => [
+              e.expense_date, e.category, e.description, e.amount, e.payment_method
+            ])
+          ];
+        }
+      } catch (_) {}
+      if (csvRows.length === 0) {
+        csvRows = [
+          ['Month', 'Total Expenses (INR)', 'Revenue (INR)', 'Net Profit (INR)'],
+          ...MONTHLY_FINANCE.map(m => [m.month, m.expense, m.revenue, m.revenue - m.expense])
+        ];
+      }
     }
 
     const csvContent = csvRows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -281,22 +334,23 @@ export default function ReportsView() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '24px', right: '24px',
-          background: 'linear-gradient(135deg,#1E293B,#0F172A)',
-          border: '1px solid #10B981', color: '#F9FAFB',
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA', color: '#1F2937',
           padding: '12px 20px', borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem'
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem',
+          fontWeight: 600
         }}>
-          <Sparkles size={18} color="#10B981" />
+          <Sparkles size={18} color="#4DA6FF" />
           {toast}
         </div>
       )}
 
       {/* Header */}
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Analytics & Excel Reports</h2>
-        <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Analytics & Excel Reports</h2>
+        <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
           Export filtered reports with custom date ranges — This Month, Last Month, Last 6 Months, or Custom period.
         </p>
       </div>
@@ -304,17 +358,17 @@ export default function ReportsView() {
       {/* Finance Summary Cards — 2×2 grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
         {[
-          { label: 'Total Revenue (6 Mo)', value: `₹${totalRevenue.toLocaleString('en-IN')}`, color: '#10B981', icon: TrendingUp },
-          { label: 'Total Expenses (6 Mo)', value: `₹${totalExpense.toLocaleString('en-IN')}`, color: '#F87171', icon: FileText },
-          { label: 'Net Profit (6 Mo)', value: `₹${netProfit.toLocaleString('en-IN')}`, color: '#F59E0B', icon: IndianRupee },
-          { label: 'Memberships Sold', value: `${totalPlansSold} Plans`, color: '#38BDF8', icon: Users },
+          { label: 'Total Revenue (6 Mo)', value: `₹${totalRevenue.toLocaleString('en-IN')}`, color: '#059669', icon: TrendingUp },
+          { label: 'Total Expenses (6 Mo)', value: `₹${totalExpense.toLocaleString('en-IN')}`, color: '#DC2626', icon: FileText },
+          { label: 'Net Profit (6 Mo)', value: `₹${netProfit.toLocaleString('en-IN')}`, color: '#D97706', icon: IndianRupee },
+          { label: 'Memberships Sold', value: `${totalPlansSold} Plans`, color: '#0284C7', icon: Users },
         ].map(s => (
-          <div key={s.label} className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: `${s.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div key={s.label} className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '14px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+            <div style={{ width: '46px', height: '46px', borderRadius: '14px', background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <s.icon size={22} color={s.color} />
             </div>
             <div>
-              <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700, marginBottom: '2px' }}>{s.label}</div>
+              <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700, marginBottom: '2px' }}>{s.label}</div>
               <div style={{ fontWeight: 900, fontSize: '1.3rem', color: s.color }}>{s.value}</div>
             </div>
           </div>
@@ -322,10 +376,10 @@ export default function ReportsView() {
       </div>
 
       {/* Month-wise Finance Table */}
-      <div className="glass-card" style={{ overflowX: 'auto' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>📊 Month-wise Financial Summary</h3>
-          <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Last 6 months</span>
+      <div className="glass-card" style={{ overflowX: 'auto', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #DCEBFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1F2937' }}>📊 Month-wise Financial Summary</h3>
+          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>Last 6 months</span>
         </div>
         <table className="table">
           <thead>
@@ -345,36 +399,36 @@ export default function ReportsView() {
               const margin = Math.round((profit / m.revenue) * 100);
               return (
                 <tr key={m.month}>
-                  <td style={{ fontWeight: 700, color: '#F9FAFB' }}>{m.month}</td>
-                  <td style={{ color: '#10B981', fontWeight: 700 }}>₹{m.revenue.toLocaleString('en-IN')}</td>
-                  <td style={{ color: '#F87171', fontWeight: 700 }}>₹{m.expense.toLocaleString('en-IN')}</td>
-                  <td style={{ color: profit > 0 ? '#F59E0B' : '#EF4444', fontWeight: 800 }}>
+                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{m.month}</td>
+                  <td style={{ color: '#059669', fontWeight: 700 }}>₹{m.revenue.toLocaleString('en-IN')}</td>
+                  <td style={{ color: '#DC2626', fontWeight: 700 }}>₹{m.expense.toLocaleString('en-IN')}</td>
+                  <td style={{ color: profit > 0 ? '#D97706' : '#DC2626', fontWeight: 800 }}>
                     ₹{profit.toLocaleString('en-IN')}
                   </td>
                   <td>
                     <span style={{
                       padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                      background: margin >= 20 ? 'rgba(16,185,129,0.15)' : margin >= 10 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
-                      color: margin >= 20 ? '#10B981' : margin >= 10 ? '#F59E0B' : '#EF4444',
+                      background: margin >= 20 ? '#ECFDF5' : margin >= 10 ? '#FFFBEB' : '#FEF2F2',
+                      color: margin >= 20 ? '#059669' : margin >= 10 ? '#D97706' : '#DC2626',
                     }}>
                       {margin}%
                     </span>
                   </td>
-                  <td style={{ color: '#38BDF8', fontWeight: 600 }}>{m.members_joined}</td>
-                  <td style={{ color: '#A78BFA', fontWeight: 600 }}>{m.memberships_sold}</td>
+                  <td style={{ color: '#0284C7', fontWeight: 600 }}>{m.members_joined}</td>
+                  <td style={{ color: '#7C3AED', fontWeight: 600 }}>{m.memberships_sold}</td>
                 </tr>
               );
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background: 'rgba(245,158,11,0.05)' }}>
-              <td style={{ fontWeight: 800, color: '#F59E0B' }}>TOTAL</td>
-              <td style={{ color: '#10B981', fontWeight: 900 }}>₹{totalRevenue.toLocaleString('en-IN')}</td>
-              <td style={{ color: '#F87171', fontWeight: 900 }}>₹{totalExpense.toLocaleString('en-IN')}</td>
-              <td style={{ color: '#F59E0B', fontWeight: 900 }}>₹{netProfit.toLocaleString('en-IN')}</td>
-              <td><span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(245,158,11,0.15)', color: '#F59E0B' }}>{Math.round((netProfit/totalRevenue)*100)}%</span></td>
-              <td style={{ color: '#38BDF8', fontWeight: 800 }}>{MONTHLY_FINANCE.reduce((a,m)=>a+m.members_joined,0)}</td>
-              <td style={{ color: '#A78BFA', fontWeight: 800 }}>{MONTHLY_FINANCE.reduce((a,m)=>a+m.memberships_sold,0)}</td>
+            <tr style={{ background: '#F0F7FF' }}>
+              <td style={{ fontWeight: 800, color: '#0284C7' }}>TOTAL</td>
+              <td style={{ color: '#059669', fontWeight: 900 }}>₹{totalRevenue.toLocaleString('en-IN')}</td>
+              <td style={{ color: '#DC2626', fontWeight: 900 }}>₹{totalExpense.toLocaleString('en-IN')}</td>
+              <td style={{ color: '#D97706', fontWeight: 900 }}>₹{netProfit.toLocaleString('en-IN')}</td>
+              <td><span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, background: '#DBEEFF', color: '#0284C7' }}>{Math.round((netProfit/totalRevenue)*100)}%</span></td>
+              <td style={{ color: '#0284C7', fontWeight: 800 }}>{MONTHLY_FINANCE.reduce((a,m)=>a+m.members_joined,0)}</td>
+              <td style={{ color: '#7C3AED', fontWeight: 800 }}>{MONTHLY_FINANCE.reduce((a,m)=>a+m.memberships_sold,0)}</td>
             </tr>
           </tfoot>
         </table>
@@ -382,12 +436,12 @@ export default function ReportsView() {
 
       {/* Export Report Cards */}
       <div>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', color: '#F9FAFB' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', color: '#1F2937' }}>
           📥 Export Reports (Date Range Required)
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '16px' }}>
           {REPORT_CARDS.map(card => (
-            <div key={card.type} className="glass-card" style={{ padding: '24px' }}>
+            <div key={card.type} className="glass-card" style={{ padding: '24px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
               <div style={{
                 padding: '12px', borderRadius: '14px',
                 background: card.bg, color: card.color,
@@ -396,16 +450,16 @@ export default function ReportsView() {
                 <card.icon size={26} />
               </div>
 
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '6px', color: '#F9FAFB' }}>{card.label}</h3>
-              <p style={{ color: '#9CA3AF', fontSize: '0.82rem', marginBottom: '20px', lineHeight: 1.5 }}>{card.desc}</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '6px', color: '#1F2937' }}>{card.label}</h3>
+              <p style={{ color: '#6B7280', fontSize: '0.82rem', marginBottom: '20px', lineHeight: 1.5 }}>{card.desc}</p>
 
               <button
                 className="btn-primary"
                 style={{
                   width: '100%',
-                  background: `linear-gradient(135deg, ${card.color}, ${card.color}CC)`,
-                  color: '#000',
-                  boxShadow: `0 4px 14px ${card.color}33`
+                  background: 'linear-gradient(135deg, #4DA6FF 0%, #2E8FE8 100%)',
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 8px rgba(77, 166, 255, 0.35)'
                 }}
                 onClick={() => setDateModal({ type: card.type, label: card.label })}
               >
@@ -418,17 +472,17 @@ export default function ReportsView() {
 
       {/* Export Log */}
       {exportLog.length > 0 && (
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.8rem' }}>
+        <div className="glass-card" style={{ padding: '20px', background: '#FFFFFF', border: '1px solid #DCEBFA' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: '12px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.8rem' }}>
             Recent Exports
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {exportLog.map(log => (
-              <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '0.82rem' }}>
-                <Download size={15} color="#10B981" />
-                <span style={{ color: '#F9FAFB', fontWeight: 600 }}>{log.type} report</span>
-                <span style={{ color: '#9CA3AF' }}>—</span>
-                <span style={{ color: '#F59E0B' }}>{log.period}</span>
+              <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 14px', background: '#F8FBFF', border: '1px solid #DCEBFA', borderRadius: '8px', fontSize: '0.82rem' }}>
+                <Download size={15} color="#059669" />
+                <span style={{ color: '#1F2937', fontWeight: 600 }}>{log.type} report</span>
+                <span style={{ color: '#6B7280' }}>—</span>
+                <span style={{ color: '#0284C7' }}>{log.period}</span>
                 <span style={{ color: '#6B7280', marginLeft: 'auto' }}>{log.exported_at}</span>
               </div>
             ))}

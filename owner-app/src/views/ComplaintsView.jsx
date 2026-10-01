@@ -7,10 +7,10 @@ import api from '../api';
 import { fetchCloudEvents, subscribeCloudStream } from '../utils/cloudSync';
 
 const STATUS_CONFIG = {
-  OPEN: { label: 'Open', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' },
-  IN_PROGRESS: { label: 'In Progress', color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.12)', border: 'rgba(56, 189, 248, 0.3)' },
-  RESOLVED: { label: 'Resolved', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.3)' },
-  CLOSED: { label: 'Closed', color: '#6B7280', bg: 'rgba(107, 114, 128, 0.12)', border: 'rgba(107, 114, 128, 0.3)' }
+  OPEN: { label: 'Open', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+  IN_PROGRESS: { label: 'In Progress', color: '#0284C7', bg: '#EAF5FF', border: '#BAE6FD' },
+  RESOLVED: { label: 'Resolved', color: '#059669', bg: '#ECFDF5', border: '#A7F3D0' },
+  CLOSED: { label: 'Closed', color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB' }
 };
 
 const CATEGORY_LABELS = {
@@ -158,18 +158,19 @@ export default function ComplaintsView() {
 
       {/* Header */}
       <div style={{
-        background: 'rgba(17, 24, 39, 0.9)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: '#FFFFFF',
+        border: '1px solid #DCEBFA',
         borderRadius: '16px',
-        padding: '16px 18px',
+        padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PhoneCall size={18} color="#38BDF8" />
-            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F9FAFB' }}>Complaints & Support</span>
+            <PhoneCall size={18} color="#4DA6FF" />
+            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1F2937' }}>Complaints & Support</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px' }}>
             Submitted via Universal QR
@@ -178,16 +179,17 @@ export default function ComplaintsView() {
         <button
           onClick={loadComplaints}
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: '#F0F7FF',
+            border: '1px solid #DCEBFA',
             borderRadius: '10px',
-            padding: '8px 12px',
-            color: '#94A3B8',
+            padding: '8px 14px',
+            color: '#0284C7',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            fontSize: '0.78rem'
+            gap: '6px',
+            fontSize: '0.78rem',
+            fontWeight: 600
           }}
         >
           <RefreshCw size={13} /> Refresh
@@ -204,15 +206,16 @@ export default function ComplaintsView() {
               minWidth: '90px',
               padding: '10px 14px',
               borderRadius: '12px',
-              background: filter === status ? cfg.bg : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${filter === status ? cfg.border : 'rgba(255,255,255,0.08)'}`,
+              background: filter === status ? cfg.bg : '#FFFFFF',
+              border: `1px solid ${filter === status ? cfg.border : '#DCEBFA'}`,
               cursor: 'pointer',
               textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
               transition: 'all 0.2s'
             }}
           >
             <div style={{ fontSize: '1.2rem', fontWeight: 900, color: cfg.color }}>{counts[status] || 0}</div>
-            <div style={{ fontSize: '0.68rem', color: '#9CA3AF', fontWeight: 700 }}>{cfg.label}</div>
+            <div style={{ fontSize: '0.68rem', color: '#6B7280', fontWeight: 700 }}>{cfg.label}</div>
           </div>
         ))}
         <div
@@ -221,15 +224,16 @@ export default function ComplaintsView() {
             minWidth: '70px',
             padding: '10px 14px',
             borderRadius: '12px',
-            background: filter === 'ALL' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.03)',
-            border: `1px solid ${filter === 'ALL' ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.08)'}`,
+            background: filter === 'ALL' ? '#EAF5FF' : '#FFFFFF',
+            border: `1px solid ${filter === 'ALL' ? '#4DA6FF' : '#DCEBFA'}`,
             cursor: 'pointer',
             textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             transition: 'all 0.2s'
           }}
         >
-          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#F59E0B' }}>{counts.ALL}</div>
-          <div style={{ fontSize: '0.68rem', color: '#9CA3AF', fontWeight: 700 }}>All</div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#4DA6FF' }}>{counts.ALL}</div>
+          <div style={{ fontSize: '0.68rem', color: '#6B7280', fontWeight: 700 }}>All</div>
         </div>
       </div>
 
@@ -245,13 +249,13 @@ export default function ComplaintsView() {
         <div style={{
           textAlign: 'center',
           padding: '40px 20px',
-          background: 'rgba(17, 24, 39, 0.6)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: '#FFFFFF',
+          border: '1px solid #DCEBFA',
           borderRadius: '16px',
           color: '#6B7280',
           fontSize: '0.88rem'
         }}>
-          <PhoneCall size={32} color="#374151" style={{ marginBottom: '12px' }} />
+          <PhoneCall size={32} color="#9CA3AF" style={{ marginBottom: '12px' }} />
           <div>No {filter !== 'ALL' ? STATUS_CONFIG[filter]?.label.toLowerCase() : ''} complaints found.</div>
         </div>
       )}
@@ -266,11 +270,12 @@ export default function ComplaintsView() {
           <div
             key={complaint.id}
             style={{
-              background: 'rgba(17, 24, 39, 0.9)',
-              border: `1px solid ${isExpanded ? statusCfg.border : 'rgba(255,255,255,0.08)'}`,
+              background: '#FFFFFF',
+              border: `1px solid ${isExpanded ? '#4DA6FF' : '#DCEBFA'}`,
               borderRadius: '16px',
               overflow: 'hidden',
-              transition: 'border-color 0.2s'
+              boxShadow: '0 1px 3px rgba(77, 166, 255, 0.08)',
+              transition: 'border-color 0.2s, box-shadow 0.2s'
             }}
           >
             {/* Card Header */}
@@ -301,7 +306,7 @@ export default function ComplaintsView() {
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F9FAFB' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1F2937' }}>
                     {complaint.name || 'Anonymous'}
                   </span>
                   <span style={{
@@ -316,12 +321,12 @@ export default function ComplaintsView() {
                     {statusCfg.label}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px' }}>
                   {catLabel} · {new Date(complaint.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
                 <div style={{
                   fontSize: '0.82rem',
-                  color: '#D1D5DB',
+                  color: '#4B5563',
                   marginTop: '6px',
                   display: '-webkit-box',
                   WebkitLineClamp: isExpanded ? 'unset' : 2,
@@ -343,17 +348,18 @@ export default function ComplaintsView() {
             {/* Expanded Detail */}
             {isExpanded && (
               <div style={{
-                borderTop: '1px solid rgba(255,255,255,0.06)',
+                borderTop: '1px solid #DCEBFA',
                 padding: '14px 16px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '12px',
+                background: '#F8FBFF'
               }}>
                 {/* Contact info */}
                 {complaint.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#9CA3AF' }}>
-                    <Phone size={14} color="#10B981" />
-                    <a href={`tel:${complaint.phone}`} style={{ color: '#10B981', textDecoration: 'none', fontWeight: 600 }}>{complaint.phone}</a>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#6B7280' }}>
+                    <Phone size={14} color="#059669" />
+                    <a href={`tel:${complaint.phone}`} style={{ color: '#059669', textDecoration: 'none', fontWeight: 600 }}>{complaint.phone}</a>
                   </div>
                 )}
 
@@ -361,11 +367,11 @@ export default function ComplaintsView() {
                 {complaint.owner_notes && (
                   <div style={{
                     padding: '10px 12px',
-                    background: 'rgba(245, 158, 11, 0.08)',
-                    border: '1px solid rgba(245, 158, 11, 0.2)',
+                    background: '#FFFBEB',
+                    border: '1px solid #FDE68A',
                     borderRadius: '10px',
                     fontSize: '0.8rem',
-                    color: '#F59E0B'
+                    color: '#92400E'
                   }}>
                     📝 Owner Note: {complaint.owner_notes}
                   </div>
@@ -373,7 +379,7 @@ export default function ComplaintsView() {
 
                 {/* Add/Edit owner note */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#6B7280', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#6B7280', marginBottom: '4px', fontWeight: 600 }}>
                     Owner Note (optional)
                   </label>
                   <textarea
@@ -385,9 +391,9 @@ export default function ComplaintsView() {
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: '8px',
-                      background: 'rgba(0,0,0,0.4)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: '#F9FAFB',
+                      background: '#FFFFFF',
+                      border: '1px solid #DCEBFA',
+                      color: '#1F2937',
                       fontSize: '0.8rem',
                       outline: 'none',
                       resize: 'vertical',
@@ -426,9 +432,9 @@ export default function ComplaintsView() {
                     style={{
                       padding: '7px 12px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      color: '#F87171',
+                      border: '1px solid #FECACA',
+                      background: '#FEF2F2',
+                      color: '#DC2626',
                       fontSize: '0.75rem',
                       fontWeight: 700,
                       cursor: 'pointer',

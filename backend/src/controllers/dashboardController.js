@@ -19,6 +19,10 @@ async function getDashboardStats(req, res) {
     monthlyExpensesResult,
     pendingPaymentsResult,
     expiringSoonResult,
+    todayRevenueResult,
+    todayExpensesResult,
+    pendingMembershipsResult,
+    renewalsResult,
   ] = await Promise.all([
     query('SELECT COUNT(*) FROM members'),
     query(`SELECT COUNT(*) FROM members WHERE status = 'ACTIVE'`),
@@ -40,10 +44,30 @@ async function getDashboardStats(req, res) {
       `SELECT COUNT(*) FROM memberships WHERE membership_status = 'ACTIVE'
        AND end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`
     ),
+    query(
+      `SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'SUCCESS'
+       AND DATE(payment_date) = $1`,
+      [today]
+    ),
+    query(
+      `SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE DATE(expense_date) = $1`,
+      [today]
+    ),
+    query(
+      `SELECT COUNT(*) FROM memberships WHERE membership_status = 'INACTIVE' OR payment_status = 'PENDING'`
+    ),
+    query(
+      `SELECT COUNT(*) FROM memberships WHERE DATE(created_at) >= $1 AND member_id IN (
+         SELECT member_id FROM memberships GROUP BY member_id HAVING COUNT(*) > 1
+       )`,
+      [startOfMonth]
+    ),
   ]);
 
   const revenue = parseFloat(monthlyRevenueResult.rows[0].total);
   const expenses = parseFloat(monthlyExpensesResult.rows[0].total);
+  const todayRevenue = parseFloat(todayRevenueResult.rows[0].total);
+  const todayExpenses = parseFloat(todayExpensesResult.rows[0].total);
 
   return successResponse(res, 'Dashboard stats retrieved', {
     totalMembers: parseInt(membersResult.rows[0].count),
@@ -54,8 +78,14 @@ async function getDashboardStats(req, res) {
     monthlyRevenue: revenue,
     monthlyExpenses: expenses,
     netProfit: revenue - expenses,
+    todayRevenue,
+    todayExpenses,
+    todayProfit: todayRevenue - todayExpenses,
     pendingPayments: parseFloat(pendingPaymentsResult.rows[0].total),
+    pendingMemberships: parseInt(pendingMembershipsResult.rows[0].count),
+    renewalsThisMonth: parseInt(renewalsResult.rows[0].count),
     membershipsExpiringSoon: parseInt(expiringSoonResult.rows[0].count),
+    expiringMemberships: parseInt(expiringSoonResult.rows[0].count),
   });
 }
 

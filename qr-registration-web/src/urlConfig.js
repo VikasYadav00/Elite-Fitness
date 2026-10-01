@@ -78,11 +78,14 @@ export function getPublicComplaintUrl() {
 
 /**
  * Resolves the Backend API Base URL
- * NEVER returns relative '/api' on GitHub Pages!
+ * NEVER returns localhost or relative '/api' on GitHub Pages or Production!
  */
 export function getApiBaseUrl() {
-  // 1. Vite environment variable passed at build or dev time
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  // 1. Vite environment variables passed at build or dev time
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
 
   if (typeof window !== 'undefined') {
     // 2. Query parameter (?api=https://...) - useful for live testing/switching backend
@@ -92,29 +95,33 @@ export function getApiBaseUrl() {
       try {
         localStorage.setItem('ef_backend_url', fromQuery);
       } catch (_) {}
-      return fromQuery;
+      return fromQuery.replace(/\/+$/, '');
     }
 
-    // 3. Stored backend URL from previous session
+    // 3. Stored backend URL from previous session (purged if localhost on production domain)
     const saved = localStorage.getItem('ef_backend_url');
-    if (saved) return saved;
+    if (saved) {
+      const isLocalhostUrl = saved.includes('localhost') || saved.includes('127.0.0.1');
+      if (window.location.hostname.includes('github.io') && isLocalhostUrl) {
+        // Automatically purge stale local dev URL when on GitHub Pages
+        localStorage.removeItem('ef_backend_url');
+      } else if (!isLocalhostUrl || import.meta.env.DEV) {
+        return saved.replace(/\/+$/, '');
+      }
+    }
 
     // 4. Injected window configuration
     if (window.__ELITE_FITNESS_API_URL__) {
-      return window.__ELITE_FITNESS_API_URL__;
+      return window.__ELITE_FITNESS_API_URL__.replace(/\/+$/, '');
     }
 
-    // 5. Localhost development environment
+    // 5. Localhost development environment ONLY during active local Vite dev
     const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (import.meta.env.DEV && (hostname === 'localhost' || hostname === '127.0.0.1')) {
       return 'http://localhost:5000/api';
-    }
-    // Private LAN IP in local testing
-    if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(hostname)) {
-      return `http://${hostname}:5000/api`;
     }
   }
 
-  // 6. Default centralized production backend API URL
+  // 6. Default centralized production backend API URL (Global HTTPS Cloud Server)
   return DEFAULT_PRODUCTION_API_URL;
 }

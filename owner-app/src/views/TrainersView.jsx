@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserCheck, Plus, Phone, Mail, Award, X, Edit2,
   Trash2, Star, Users, Briefcase, Check, Sparkles
@@ -31,6 +31,28 @@ export default function TrainersView() {
   const [formData, setFormData] = useState(BLANK_TRAINER);
   const [viewTrainer, setViewTrainer] = useState(null);
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    async function loadTrainers() {
+      try {
+        const res = await api.get('/trainers');
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setTrainers(res.data.data.map(t => ({
+            id: String(t.id),
+            name: t.name || t.full_name || 'Trainer',
+            phone: t.phone || '',
+            email: t.email || '',
+            specialization: t.specialization || 'Fitness Coach',
+            experience: t.experience || '3 Years',
+            bio: t.bio || '',
+            assigned: parseInt(t.assigned) || 0,
+            status: t.status || 'ACTIVE'
+          })));
+        }
+      } catch (_) {}
+    }
+    loadTrainers();
+  }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -86,14 +108,15 @@ export default function TrainersView() {
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', bottom: '24px', right: '24px',
-          background: 'linear-gradient(135deg,#1E293B,#0F172A)',
-          border: `1px solid ${toast.type === 'success' ? '#10B981' : '#EF4444'}`,
-          color: '#F9FAFB', padding: '12px 20px', borderRadius: '12px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.6)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem'
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: '#FFFFFF',
+          border: `1.5px solid ${toast.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+          color: '#1F2937', padding: '12px 20px', borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.15)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem',
+          whiteSpace: 'nowrap', maxWidth: '90vw'
         }}>
-          <Sparkles size={18} color={toast.type === 'success' ? '#10B981' : '#EF4444'} />
+          <Sparkles size={16} color={toast.type === 'success' ? '#059669' : '#DC2626'} />
           {toast.msg}
         </div>
       )}
@@ -101,8 +124,8 @@ export default function TrainersView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gym Trainers & Instructors</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Gym Trainers & Instructors</h2>
+          <p style={{ color: '#6B7280', fontSize: '0.85rem' }}>
             View, add, edit, or remove trainer profiles. Click a card to view full details.
           </p>
         </div>
@@ -114,24 +137,24 @@ export default function TrainersView() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px' }}>
         <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Users size={22} color="#F59E0B" />
+          <Users size={22} color="#4DA6FF" />
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Total Trainers</div>
-            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#F9FAFB' }}>{trainers.length}</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Total Trainers</div>
+            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#1F2937' }}>{trainers.length}</div>
           </div>
         </div>
         <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <UserCheck size={22} color="#10B981" />
+          <UserCheck size={22} color="#059669" />
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Active Trainers</div>
-            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#10B981' }}>{trainers.filter(t => t.status === 'ACTIVE').length}</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Active Trainers</div>
+            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#059669' }}>{trainers.filter(t => t.status === 'ACTIVE').length}</div>
           </div>
         </div>
         <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Briefcase size={22} color="#38BDF8" />
+          <Briefcase size={22} color="#4DA6FF" />
           <div>
-            <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Total Assigned</div>
-            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#38BDF8' }}>{trainers.reduce((a, t) => a + (t.assigned || 0), 0)}</div>
+            <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Total Assigned</div>
+            <div style={{ fontWeight: 900, fontSize: '1.5rem', color: '#4DA6FF' }}>{trainers.reduce((a, t) => a + (t.assigned || 0), 0)}</div>
           </div>
         </div>
       </div>
@@ -162,7 +185,7 @@ export default function TrainersView() {
                   {getInitials(t.name)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F9FAFB' }}>{t.name}</h3>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1F2937' }}>{t.name}</h3>
                   <span style={{
                     fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px',
                     background: `${color}1A`, color, border: `1px solid ${color}44`
@@ -173,7 +196,7 @@ export default function TrainersView() {
               </div>
 
               {/* Info */}
-              <div style={{ fontSize: '0.82rem', color: '#9CA3AF', display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#6B7280', display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Phone size={13} /> {t.phone}
                 </div>

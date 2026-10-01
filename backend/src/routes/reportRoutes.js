@@ -9,6 +9,7 @@ const {
 
 router.get('/revenue', authenticate, authorize('OWNER'), getRevenueReport);
 router.get('/memberships', authenticate, authorize('OWNER'), getMembershipReport);
+router.get('/membership', authenticate, authorize('OWNER'), getMembershipReport);
 router.get('/attendance', authenticate, authorize('OWNER', 'TRAINER'), getAttendanceReport);
 router.get('/expenses', authenticate, authorize('OWNER'), getExpensesReport);
 router.get('/profit-loss', authenticate, authorize('OWNER'), getProfitLossReport);

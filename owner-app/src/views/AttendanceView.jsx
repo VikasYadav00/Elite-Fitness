@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock, QrCode, CheckCircle, UserCheck, Plus, X,
   Shield, Smartphone, RefreshCw, Copy, Check, AlertCircle, Sparkles,
-  Download, Printer, Wifi, ExternalLink, Share2
+  Download, Printer, Wifi, ExternalLink, Share2, Search, Users, CheckSquare
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -37,6 +37,12 @@ export default function AttendanceView() {
     } catch (e) {}
     return MOCK_ATTENDANCE;
   });
+
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'roster'
+  const [roster, setRoster] = useState([]);
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [loadingRoster, setLoadingRoster] = useState(false);
+  const [markingId, setMarkingId] = useState(null);
 
   const [showManualModal, setShowManualModal] = useState(false);
   const [showQRPanel, setShowQRPanel] = useState(true);
@@ -202,21 +208,113 @@ export default function AttendanceView() {
     showToast('Check-in URL copied!');
   };
 
-  const handleManualCheckin = (e) => {
+  const fetchRoster = async (search = '') => {
+    setLoadingRoster(true);
+    try {
+      const res = await api.get(`/attendance/roster?search=${encodeURIComponent(search)}`);
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setRoster(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Failed to load roster:', err);
+    } finally {
+      setLoadingRoster(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoster(rosterSearch);
+  }, [rosterSearch]);
+
+  const handleManualCheckin = async (e) => {
     e.preventDefault();
-    const newEntry = {
-      id: String(Date.now()),
-      reg_id: manualRegId || 'EF26091099',
-      name: 'Walk-in Member Check-in',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      method: 'MANUAL',
-      device_id: 'OWNER-OVERRIDE',
-      status: 'PRESENT'
-    };
-    setAttendance([newEntry, ...attendance]);
-    setShowManualModal(false);
-    setManualRegId('');
-    showToast(`Attendance marked for ${newEntry.reg_id}`);
+    if (!manualRegId.trim()) return;
+
+    try {
+      const res = await api.post('/attendance/manual', {
+        member_id: manualRegId.trim(),
+        status: 'PRESENT'
+      });
+
+      if (res.data?.success) {
+        const item = res.data.data;
+        const timeStr = item.check_in_time 
+          ? new Date(item.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const newEntry = {
+          id: String(item.id || Date.now()),
+          reg_id: item.registration_id || manualRegId.trim(),
+          name: item.full_name || 'Member',
+          time: timeStr,
+          method: 'MANUAL',
+          device_id: 'OWNER-RECEPTION',
+          status: 'PRESENT'
+        };
+
+        setAttendance(prev => {
+          const updated = [newEntry, ...prev.filter(p => p.reg_id !== newEntry.reg_id)];
+          try { localStorage.setItem('ef_attendance_logs', JSON.stringify(updated)); } catch(e){}
+          return updated;
+        });
+
+        // Also update roster
+        setRoster(prev => prev.map(m => {
+          if (m.registration_id === newEntry.reg_id || String(m.member_id) === String(item.member_id) || m.phone === item.phone) {
+            return { ...m, today_status: 'PRESENT', check_in_time: item.check_in_time, method: 'MANUAL' };
+          }
+          return m;
+        }));
+
+        showToast(`✅ Attendance recorded for ${item.full_name || newEntry.reg_id}!`);
+        setShowManualModal(false);
+        setManualRegId('');
+        return;
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message;
+      showToast(`⚠️ ${errorMsg}`);
+    }
+  };
+
+  const handleQuickMarkPresent = async (member) => {
+    setMarkingId(member.member_id);
+    try {
+      const res = await api.post('/attendance/manual', {
+        member_id: member.member_id,
+        status: 'PRESENT'
+      });
+
+      if (res.data?.success) {
+        const item = res.data.data;
+        const timeStr = item.check_in_time 
+          ? new Date(item.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const newEntry = {
+          id: String(item.id || Date.now()),
+          reg_id: member.registration_id,
+          name: member.full_name,
+          time: timeStr,
+          method: 'MANUAL',
+          device_id: 'OWNER-DESK',
+          status: 'PRESENT'
+        };
+
+        setAttendance(prev => {
+          const updated = [newEntry, ...prev.filter(p => p.reg_id !== member.registration_id)];
+          try { localStorage.setItem('ef_attendance_logs', JSON.stringify(updated)); } catch(e){}
+          return updated;
+        });
+
+        setRoster(prev => prev.map(m => m.member_id === member.member_id ? { ...m, today_status: 'PRESENT', check_in_time: item.check_in_time, method: 'MANUAL' } : m));
+        showToast(`✅ ${member.full_name} (${member.registration_id}) marked PRESENT!`);
+      }
+    } catch (err) {
+      showToast(`⚠️ Could not mark attendance: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setMarkingId(null);
+    }
   };
 
   // ─── GENERATE HIGH-RES TABLE STANDEE CANVAS ──────────────────────────────
@@ -492,22 +590,24 @@ export default function AttendanceView() {
         <div style={{
           position: 'fixed',
           bottom: '24px',
-          right: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 9999,
-          background: 'linear-gradient(135deg, #1E293B, #0F172A)',
-          border: '1px solid #10B981',
-          color: '#F9FAFB',
+          background: '#FFFFFF',
+          border: '1.5px solid #DCEBFA',
+          color: '#1F2937',
           padding: '12px 20px',
           borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+          boxShadow: '0 8px 24px rgba(77, 166, 255, 0.18)',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.9rem',
+          fontSize: '0.88rem',
           fontWeight: 600,
-          backdropFilter: 'blur(8px)'
+          whiteSpace: 'nowrap',
+          maxWidth: '90vw',
         }}>
-          <Sparkles size={18} color="#10B981" />
+          <Sparkles size={16} color="#4DA6FF" />
           {toastMessage}
         </div>
       )}
@@ -515,10 +615,10 @@ export default function AttendanceView() {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
             Attendance & Desk Check-In
           </h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.82rem', margin: '4px 0 0' }}>
+          <p style={{ color: '#6B7280', fontSize: '0.82rem', margin: '4px 0 0' }}>
             Table Standee QR code for members to mark attendance • Live check-in feed
           </p>
         </div>
@@ -537,32 +637,32 @@ export default function AttendanceView() {
       {/* Attendance Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '14px' }}>
         <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: '#EAF5FF', color: '#4DA6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <UserCheck size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Total Present Today</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#F9FAFB' }}>{attendance.length}</div>
+            <div style={{ fontSize: '0.72rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Total Present Today</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#1F2937' }}>{attendance.length}</div>
           </div>
         </div>
 
         <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: '#EAF5FF', color: '#4DA6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Smartphone size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Table QR Scans</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#38BDF8' }}>{qrCheckinsCount}</div>
+            <div style={{ fontSize: '0.72rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Table QR Scans</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#4DA6FF' }}>{qrCheckinsCount}</div>
           </div>
         </div>
 
         <div className="glass-card" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shield size={26} />
           </div>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', textTransform: 'uppercase', fontWeight: 700 }}>Table Standee Status</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10B981', marginTop: '4px' }}>Ready for Desk</div>
+            <div style={{ fontSize: '0.72rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Table Standee Status</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#059669', marginTop: '4px' }}>Ready for Desk</div>
           </div>
         </div>
       </div>
@@ -571,8 +671,8 @@ export default function AttendanceView() {
       {showQRPanel && (
         <div className="glass-card" style={{
           padding: '24px',
-          background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.85))',
-          border: '1px solid rgba(245, 158, 11, 0.4)',
+          background: 'linear-gradient(135deg, #4DA6FF 0%, #2E8FE8 100%)',
+          border: '1px solid #B3D4F5',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
           gap: '24px',
@@ -691,27 +791,27 @@ export default function AttendanceView() {
           {/* Right: Security & Table Standee Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', width: 'fit-content', fontSize: '0.75rem', fontWeight: 800 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(255,255,255,0.2)', color: '#FFFFFF', width: 'fit-content', fontSize: '0.75rem', fontWeight: 800 }}>
                 <Shield size={14} /> TABLE STANDEE FOR RECEPTION DESK
               </div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(16,185,129,0.15)', color: '#10B981', width: 'fit-content', fontSize: '0.75rem', fontWeight: 800 }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '999px', background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', width: 'fit-content', fontSize: '0.75rem', fontWeight: 800 }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FFFFFF' }} />
                 Auto-Saves to Backend
               </div>
             </div>
 
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F9FAFB', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
               Table Attendance Standee
             </h3>
 
-            <p style={{ color: '#D1D5DB', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
               Download and print this QR standee to paste on your front desk or reception table. Members point their phone camera at the QR to clock in automatically!
             </p>
 
             {/* Checkin URL Info Box */}
             <div style={{
-              background: 'rgba(0, 0, 0, 0.4)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
               borderRadius: '12px',
               padding: '14px',
               fontSize: '0.8rem',
@@ -720,25 +820,25 @@ export default function AttendanceView() {
               gap: '8px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#9CA3AF' }}>Scannable Link:</span>
+                <span style={{ color: 'rgba(255,255,255,0.75)' }}>Scannable Link:</span>
                 <a
                   href={qrValue}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: '#38BDF8', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                  style={{ color: '#FFFFFF', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
                 >
                   Test Link in Browser <ExternalLink size={12} />
                 </a>
               </div>
 
               <div style={{
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
                 borderRadius: '8px',
                 padding: '6px 10px',
                 fontFamily: 'monospace',
                 fontSize: '0.72rem',
-                color: '#38BDF8',
+                color: '#FFFFFF',
                 wordBreak: 'break-all'
               }}>
                 <Wifi size={12} style={{ display: 'inline', marginRight: '6px' }} />
@@ -783,7 +883,7 @@ export default function AttendanceView() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#F59E0B',
+                    color: '#FFFFFF',
                     fontSize: '0.72rem',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -804,11 +904,146 @@ export default function AttendanceView() {
         </div>
       )}
 
-      {/* Attendance Table */}
+      {/* View Switcher: Today's Feed vs All Members Roster */}
+      <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #DCEBFA', paddingBottom: '12px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('feed')}
+          style={{
+            padding: '10px 18px',
+            borderRadius: '10px',
+            border: activeTab === 'feed' ? '1px solid #4DA6FF' : '1px solid #DCEBFA',
+            background: activeTab === 'feed' ? '#EAF5FF' : '#FFFFFF',
+            color: activeTab === 'feed' ? '#4DA6FF' : '#6B7280',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Clock size={16} /> Today's Check-in Feed ({attendance.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setActiveTab('roster'); fetchRoster(rosterSearch); }}
+          style={{
+            padding: '10px 18px',
+            borderRadius: '10px',
+            border: activeTab === 'roster' ? '1px solid #059669' : '1px solid #DCEBFA',
+            background: activeTab === 'roster' ? '#ECFDF5' : '#FFFFFF',
+            color: activeTab === 'roster' ? '#059669' : '#6B7280',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Users size={16} /> All Members Roster ({roster.length})
+        </button>
+      </div>
+
+      {/* Tab 1: Member Roster & Quick Check-in */}
+      {activeTab === 'roster' && (
+        <div className="glass-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#1F2937' }}>All Active Members Attendance Roster</h3>
+              <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '4px 0 0' }}>Newly registered members appear here immediately. Click "Mark Present" for instant check-in.</p>
+            </div>
+
+            <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+              <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                className="input-field"
+                style={{ paddingLeft: '38px', fontSize: '0.85rem', width: '100%' }}
+                placeholder="Search name, phone, or Reg ID..."
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>REG ID</th>
+                  <th>MEMBER NAME</th>
+                  <th>PHONE</th>
+                  <th>PLAN</th>
+                  <th>TODAY'S STATUS</th>
+                  <th>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingRoster ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#9CA3AF' }}>Loading members roster...</td>
+                  </tr>
+                ) : roster.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#9CA3AF' }}>No members found.</td>
+                  </tr>
+                ) : (
+                  roster.map((m) => (
+                    <tr key={m.member_id}>
+                      <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#4DA6FF' }}>{m.registration_id}</td>
+                      <td style={{ fontWeight: 600, color: '#1F2937' }}>{m.full_name}</td>
+                      <td style={{ color: '#6B7280' }}>{m.phone}</td>
+                      <td>
+                        <span style={{ fontSize: '0.78rem', background: '#EAF5FF', color: '#4DA6FF', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                          {m.plan_name || 'Standard Plan'}
+                        </span>
+                      </td>
+                      <td>
+                        {m.today_status === 'PRESENT' ? (
+                          <span className="status-badge status-active">
+                            <CheckCircle size={12} /> PRESENT
+                          </span>
+                        ) : (
+                          <span className="status-badge status-inactive">
+                            <Clock size={12} /> NOT CHECKED IN
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {m.today_status === 'PRESENT' ? (
+                          <span style={{ fontSize: '0.82rem', color: '#10B981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CheckCircle size={14} /> Checked In
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700 }}
+                            onClick={() => handleQuickMarkPresent(m)}
+                            disabled={markingId === m.member_id}
+                          >
+                            {markingId === m.member_id ? 'Marking...' : 'Mark Present'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Today's Check-in Feed */}
+      {activeTab === 'feed' && (
       <div className="glass-card" style={{ overflowX: 'auto' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Today's Check-in Feed</h3>
-          <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Showing latest entries</span>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #DCEBFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#1F2937' }}>Today's Check-in Feed</h3>
+          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>Showing latest entries</span>
         </div>
 
         <table className="table">
@@ -825,15 +1060,15 @@ export default function AttendanceView() {
           <tbody>
             {attendance.map((item) => (
               <tr key={item.id}>
-                <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#F59E0B' }}>{item.reg_id}</td>
+                <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#4DA6FF' }}>{item.reg_id}</td>
                 <td style={{ fontWeight: 600 }}>{item.name}</td>
                 <td>{item.time}</td>
                 <td>
-                  <span className={`status-badge ${item.method.includes('QR') ? 'status-frozen' : 'status-inactive'}`}>
-                    {item.method.includes('QR') ? <QrCode size={12} /> : <Clock size={12} />} {item.method}
+                  <span className={`status-badge ${item.method && item.method.includes('QR') ? 'status-frozen' : 'status-inactive'}`}>
+                    {item.method && item.method.includes('QR') ? <QrCode size={12} /> : <Clock size={12} />} {item.method || 'Check-in'}
                   </span>
                 </td>
-                <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#9CA3AF' }}>
+                <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6B7280' }}>
                   {item.device_id}
                 </td>
                 <td>
@@ -846,13 +1081,14 @@ export default function AttendanceView() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Manual Checkin Modal */}
       {showManualModal && (
         <div className="modal-overlay" onClick={() => setShowManualModal(false)}>
           <div className="modal-content animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.25rem', color: '#F59E0B', fontWeight: 800, margin: 0 }}>Manual Attendance Check-in</h3>
+              <h3 style={{ fontSize: '1.25rem', color: '#1F2937', fontWeight: 800, margin: 0 }}>Manual Attendance Check-in</h3>
               <X size={20} color="#9CA3AF" style={{ cursor: 'pointer' }} onClick={() => setShowManualModal(false)} />
             </div>
 
